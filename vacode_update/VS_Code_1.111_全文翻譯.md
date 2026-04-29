@@ -1,211 +1,221 @@
-# Visual Studio Code 更新 — 2026 年 3 月（版本 1.111）
+# Visual Studio Code 1.111 版本更新 — 全文翻譯（繁體中文）
 
-> 來源：[https://code.visualstudio.com/updates/v1_111](https://code.visualstudio.com/updates/v1_111)
-> 發布日期：2026 年 3 月 9 日
-
----
-
-## 更新概覽
-
-歡迎來到 Visual Studio Code 2026 年 3 月的更新。**這是 VS Code 首個每週穩定版本（Weekly Stable Release）。**
-
-在此之前，Microsoft 以每月一次的頻率更新 Visual Studio Code。Microsoft 傑出工程師、VS Code 工程團隊負責人 Kai Maetzel 表示，在精簡開發和交付流程之後，VS Code 將**每週發布一個新的穩定版本**。這代表了 VS Code 發布策略的重大轉變，旨在加速功能交付的節奏。
-
-本次發布版本增強了代理體驗，包含以下主要功能：
-
-- **代理權限**：為每個工作階段調整代理的自主等級
-- **自動駕駛（預覽版）**：讓代理自主迭代直到完成任務
-- **代理範圍掛鉤（預覽版）**：為代理附加前處理和後處理邏輯，而不影響其他聊天互動
-- **代理除錯**：使用除錯事件快照排查代理行為和自訂設定
+**版本：** 1.111
+**發行日期：** 2026 年 3 月 9 日
+**原文：** https://code.visualstudio.com/updates/v1_111
 
 ---
 
-## GitHub Copilot
+歡迎使用 Visual Studio Code 1.111 版本，**這是我們首個每週穩定版發行**！本次發行透過以下功能進一步強化 Agent 體驗：
 
-### 代理權限選擇器（Agent Permissions Picker）
+- **[Agent 權限](#autopilot-與-agent-權限)**：為每個工作階段調整 Agent 的自主等級。
+- **[Autopilot（Preview）](#autopilotpreview)**：讓 Agent 自主反覆迭代直到完成任務。
+- **[Agent 範圍的掛鉤（Preview）](#agent-範圍的掛鉤preview)**：為 Agent 附加前處理和後處理邏輯，不影響其他聊天互動。
+- **[Agent 疑難排解](#偵錯事件快照)**：使用偵錯事件快照疑難排解 Agent 行為和自訂項目。
 
-聊天檢視中新增了一個權限選擇器，讓您決定給予代理多大的自主權。權限等級僅適用於當前工作階段，可隨時透過選擇不同的等級來變更。
-
-#### 權限等級
-
-**預設核准（Default Approvals）**
-
-使用您已設定的核准設定。需要核准的工具會在執行前顯示確認對話框。這是最安全的模式，讓您完全掌控代理可以執行的每個操作。
-
-**略過核准（Bypass Approvals）**
-
-自動核准所有工具呼叫，不顯示確認對話框，並自動重試錯誤。此等級跳過了手動確認步驟，但代理仍會在遇到需要使用者輸入的問題時暫停。
-
-**自動駕駛（Autopilot）**（預覽版）
-
-自動核准所有工具呼叫，自動重試錯誤，自動回應問題，代理持續自主工作直到任務完成。這是最高自主等級，代理不會因等待回覆而停滯。
-
-> **安全注意事項**：略過核准和自動駕駛會繞過手動核准提示，並忽略您已設定的核准設定，包括檔案編輯、終端機命令和外部工具呼叫等潛在破壞性操作。由於生成式 AI 的非確定性本質及其對提示注入的脆弱性，自動核准存在安全風險。讓代理透過 MCP（模型上下文協定）呼叫第三方工具會增加風險，因為它將代理的範圍擴展到程式碼編輯環境之外，且容易受到程式碼品質不佳的工具或工具投毒等攻擊的影響。
-
-### 自動駕駛模式（Autopilot）（預覽版）
-
-自動駕駛是本次更新最受關注的功能，也是 Copilot Chat 中的一個權限等級。在此模式下：
-
-- 所有工具呼叫都會自動核准
-- 錯誤會自動重試
-- 工具提出的問題會自動回應，「使代理不會因等待回覆而停滯」
-- 代理持續自主工作直到任務完成
-
-**啟用方式**：在穩定版中，啟用 `chat.autopilot.enabled` 設定。
-
-自動駕駛的概念類似於 Google 也在推動的「不需手動核准的代理式 AI 開發」方向。Microsoft 和 Google 都在鼓勵開發者讓 AI 代理更自主地運作，但這同時也帶來了安全性方面的考量。
-
-### 代理範圍掛鉤（Agent-Scoped Hooks）（預覽版）
-
-自訂代理的 frontmatter 現在支援代理範圍掛鉤。這些掛鉤**僅在您選擇特定代理或透過 `runSubagent` 調用該代理時才會執行**，不會影響其他聊天互動。
-
-要建立代理範圍掛鉤，請在您的 `.agent.md` 檔案的 YAML frontmatter 的 `hooks` 區段中定義它：
-
-```yaml
----
-name: my-agent
-description: 我的自訂代理
-hooks:
-  preToolCall:
-    command: "echo '工具即將執行'"
-  postToolCall:
-    command: "echo '工具已完成執行'"
----
-
-# 我的代理指令
-
-這裡是代理的指令內容...
-```
-
-**啟用方式**：設定 `chat.useCustomAgentHooks` 為 `true`。
-
-代理範圍掛鉤的主要用途：
-
-- **前處理邏輯（preToolCall）**：在工具執行前進行驗證、日誌記錄或環境準備
-- **後處理邏輯（postToolCall）**：在工具執行後進行清理、格式化或結果驗證
-- **範圍隔離**：每個代理可以有自己的掛鉤，不會干擾其他代理或一般聊天
-
-### 代理除錯：除錯事件快照（Debug Events Snapshot）
-
-為了幫助您理解和排查代理行為，現在可以使用 `#debugEventsSnapshot` 將代理除錯事件的快照作為上下文附加到聊天中。
-
-使用此功能可以：
-
-- **查詢已載入的自訂設定**：了解哪些提示詞檔案、技能、掛鉤等正在作用
-- **監控 Token 消耗**：追蹤代理在對話中消耗了多少 Token
-- **排查代理行為**：理解代理為何做出某些決定或採取某些行動
-
-使用方式：在聊天輸入中加入 `#debugEventsSnapshot`，代理會將當前除錯面板中的事件快照納入上下文進行分析。
-
-### 聊天提示改進（Chat Tips）
-
-聊天提示體驗經過重新設計，以便在您的聊天旅程中更好地在正確的時機展示相關提示：
-
-- **結構化入門提示**：首次使用 VS Code 時，會顯示結構化的入門引導提示
-- **生活品質提示**：入門提示完成後，會顯示進階提示，如實驗性設定的介紹
-- **情境感知**：提示會根據您目前的使用情境顯示最相關的內容
+Happy Coding!
 
 ---
 
-## 擴充功能開發
+## Autopilot 與 Agent 權限
 
-### 在地化 IntelliSense（Localization IntelliSense）
+**設定**：`chat.autopilot.enabled`
 
-VS Code 支援在擴充功能的 `package.json` 中使用在地化字串。本次迭代為這些在地化字串新增了基本的 IntelliSense 功能，使得與在地化字串的互動更加便利：
+聊天檢視中全新的權限選擇器讓您控制 Agent 的自主程度。權限等級僅適用於目前工作階段。您可以在工作階段期間隨時從權限選擇器中選取不同的等級來變更它。
 
-#### 前往定義（Go to Definition）
+您可以從以下權限等級中選擇：
 
-讓您跳轉到或預覽 `package.nls.json` 檔案中在地化字串的定義。當您在 `package.json` 中看到一個在地化字串的參考（例如 `%extensionDescription%`），可以使用「前往定義」直接跳到 `package.nls.json` 中對應的字串值。
+| 權限等級 | 說明 |
+|---------|------|
+| Default Approvals | 使用您已設定的核准設定。需要核准的工具會在執行前顯示確認對話方塊。 |
+| Bypass Approvals | 自動核准所有工具呼叫，不顯示確認對話方塊，並在錯誤時自動重試。 |
+| Autopilot（Preview） | 自動核准所有工具呼叫、在錯誤時自動重試、自動回應問題，Agent 持續自主工作直到任務完成。 |
 
-#### 尋找所有參考（Find All References）
+### Autopilot（Preview）
 
-顯示在地化字串在 `package.json` 或 `package.nls.json` 中被引用的所有位置。這對於想要了解某個在地化字串在哪些地方被使用的擴充功能作者非常有用。
+Autopilot 在 Insiders 中預設啟用。您可以透過啟用 `chat.autopilot.enabled` 在 Stable 版中啟用它。
 
----
+在幕後，Agent 持續保持控制並反覆迭代，直到它透過呼叫 `task_complete` 工具表示完成。
 
-## 工程流程（Engineering）
+> **注意**：**Bypass Approvals** 和 **Autopilot** 會略過手動核准提示，並忽略您已設定的核准設定，包括具潛在破壞性的操作，例如檔案編輯、終端機命令和外部工具呼叫。首次啟用任一等級時，會顯示警告對話方塊要求您確認。只有在您了解安全影響的情況下才使用這些等級。
 
-隨著轉向每週穩定版本發布，VS Code 持續改進工程流程，以更快的步調交付高品質功能。
-
-### 一鍵建立測試計畫項目
-
-新增了從功能請求 Issue 一鍵建立測試計畫項目的體驗。這減少了為新功能設定結構化測試計畫所需的手動步驟。
-
-### 自動產生驗證步驟
-
-測試計畫項目會隨機分配給工程師，而清楚的驗證步驟對於高效且有效的測試至關重要。因此在相關 Issue 上新增了一個按鈕，可以自動產生驗證步驟，幫助確保 Issue 在關閉前有清楚、結構化的驗證步驟。
+更多資訊請參閱文件中的 [Autopilot 和 Agent 權限](https://code.visualstudio.com/docs/copilot/agents/agent-tools#permission-levels)。
 
 ---
 
-## 安全性考量
+## Agent 範圍的掛鉤（Preview）
 
-本次更新中關於自動駕駛和略過核准的功能引發了社群的安全性討論：
+**設定**：`chat.useCustomAgentHooks`
 
-### 非確定性風險
-生成式 AI 的非確定性本質意味著代理的行為無法完全預測。在自動核准模式下，代理可能執行非預期的操作。
+自訂 Agent 的前置資料現在支援 Agent 範圍的掛鉤，僅在您選取特定 Agent 或透過 `runSubagent` 呼叫時才會執行。這讓您可以為特定 Agent 附加前處理和後處理邏輯，不影響其他聊天互動。
 
-### MCP 工具風險
-讓代理透過 MCP 呼叫第三方工具會擴大代理的操作範圍，超出程式碼編輯環境。這帶來了額外的風險：
+若要建立 Agent 範圍的掛鉤，請在您的 `.agent.md` 檔案的 YAML 前置資料的 `hooks` 區段中定義它。
 
-- **程式碼品質不佳的工具**：第三方 MCP 工具可能有漏洞或錯誤
-- **工具投毒（Tool Poisoning）**：惡意工具可能被偽裝成合法工具
-- **提示注入（Prompt Injection）**：外部內容可能包含操控代理行為的指令
-
-### 建議
-使用略過核准或自動駕駛模式時，建議：
-
-- 在可控的環境中使用
-- 定期檢查代理的操作記錄
-- 謹慎選擇和審核 MCP 工具
-- 考慮使用沙盒環境限制代理的存取範圍
+若要試用此功能，請啟用 `chat.useCustomAgentHooks` 設定。更多資訊請參閱文件中的 [Agent 範圍的掛鉤](https://code.visualstudio.com/docs/copilot/customization/hooks#_agentscoped-hooks)。
 
 ---
 
-## 可用性
+## 偵錯事件快照
 
-VS Code 1.111 現已推出，Microsoft 提供了 Windows、macOS 和 Linux 三大平台的安裝程式。此後，VS Code 將以每週的頻率發布新的穩定版本。
+為幫助您了解和疑難排解 Agent 行為，您現在可以透過 `#debugEventsSnapshot` 將 Agent 偵錯事件的快照作為上下文附加至聊天。使用它來詢問 Agent 有關已載入的自訂項目、Token 消耗，或疑難排解 Agent 行為。
+
+您也可以選取 Agent Debug 面板右上角的閃光聊天圖示，將偵錯事件快照作為附件新增至聊天編輯器。選取附件會開啟 Agent Debug 面板日誌，並篩選至快照拍攝時的時間戳記。
+
+更多資訊請參閱文件中的[偵錯聊天互動](https://code.visualstudio.com/docs/copilot/chat/chat-debug-view)。
 
 ---
 
-## 詞彙對照表
+## 聊天提示改善
+
+聊天體驗快速演進，我們希望確保您了解新功能和改善。我們重新設計了聊天提示體驗，在您的聊天旅程中的適當時機更好地呈現相關提示。
+
+聊天提示現在引導您經歷結構化的入門旅程。基礎提示（例如使用 Plan Agent 和建立自訂 Agent）會先顯示。在您完成或關閉基礎提示後，生活品質提示（例如實驗性設定或生成 Mermaid 圖表）會以隨機順序顯示。
+
+額外的聊天提示改善包括：
+
+- 提示僅在單一聊天工作階段可見時顯示，例如在歡迎檢視或聊天檢視中。如果開啟了多個聊天編輯器，提示會隱藏以減少雜亂。
+- 提示包含鍵盤快捷鍵，幫助您發現相關的按鍵綁定。
+- 提示在您對它們採取行動或在目前工作階段中關閉後會隱藏。
+- 我們新增了 `/init` 和 `/fork` 斜線命令的提示。`/init` 提示幫助您發現初始化專案組態的命令，`/fork` 提示介紹手動對話分叉，讓您可以分支對話以探索不同的方法。
+
+---
+
+## AI CLI 設定檔群組（實驗性）
+
+**設定**：`terminal.integrated.experimental.aiProfileGrouping`
+
+AI CLI 終端機設定檔（例如 GitHub Copilot CLI）現在顯示在終端機設定檔下拉選單頂部的專用群組中，以提升可發現性。若要啟用此功能，請開啟 `terminal.integrated.experimental.aiProfileGrouping` 設定。
+
+---
+
+### 擴充功能 package.json 檔案中本地化字串的基本 IntelliSense
+
+VS Code 支援[在擴充功能的 `package.json` 中本地化字串](https://github.com/microsoft/vscode-l10n?tab=readme-ov-file#packagenlsjson)。在本次迭代中，我們新增了幾個基本的 IntelliSense 功能，讓處理這些本地化字串更加容易。
+
+- `Go to Definition`：跳至或窺視 `package.nls.json` 檔案中本地化字串的定義。
+- `Find all References`：查看本地化字串在 `package.json` 或 `package.nls.json` 檔案中被參考的所有位置。
+
+---
+
+## 工程
+
+隨著轉向**每週穩定版發行**，我們持續改善工程流程，以更快的步調交付高品質功能。
+
+### 測試計畫項目建立
+
+我們新增了一鍵體驗，可從功能請求 Issue 建立測試計畫項目。這減少了為新功能設定結構化測試計畫所需的手動步驟。
+
+### 驗證步驟生成
+
+由於測試計畫項目是隨機指派給工程師的，清晰的驗證步驟對於高效和有效的測試至關重要。我們新增了一個按鈕，可在相關的 Issue 上生成驗證步驟。這有助於確保 Issue 在關閉前具有清晰、結構化的步驟來驗證修正和功能。
+
+### PR 媒體自動附加至關聯的 Issue
+
+當您合併一個描述中包含圖片或 GIF 的 Pull Request 時，媒體內容現在會自動作為留言發佈到關聯的 Issue 上。這透過讓修正或功能的視覺展示直接在 Issue 上可見，精簡了驗證流程。
+
+### Chat Showcase 流水線
+
+一個新的自動化流水線處理被標記為 `chat-showcase` 的 Issue。當識別到一個 Showcase Issue 時，會自動建立對應的聊天提示 Issue，讓新增功能提示更加容易。
+
+---
+
+## 已棄用的功能與設定
+
+### 本次發行的新棄用項目
+
+無
+
+### 即將棄用的項目
+
+- **Edit Mode** 自 VS Code 1.110 版本起正式棄用。使用者可透過 VS Code 設定 `chat.editMode.hidden` 暫時重新啟用 Edit Mode。此設定將支援至 1.125 版本。從 1.125 版本開始，Edit Mode 將被完全移除，且無法再透過設定啟用。
+
+---
+
+## 重要修正
+
+（無）
+
+---
+
+## 感謝
+
+`vscode` 程式碼貢獻者：
+
+- [@cathaysia (cathaysia)](https://github.com/cathaysia)：修正（json.schemaDownload.trustedDomains）：避免總是更新 json.sch… [PR #298423](https://github.com/microsoft/vscode/pull/298423)
+- [@eliericha (Elie Richa)](https://github.com/eliericha)
+  - 在 Shell 環境中包含除錯擴充功能主機環境 (#_241078) [PR #298276](https://github.com/microsoft/vscode/pull/298276)
+  - 在遠端終端機 Shell 環境中包含遠端除錯擴充功能主機環境 [PR #299007](https://github.com/microsoft/vscode/pull/299007)
+- [@jaidhyani (Jai Dhyani)](https://github.com/jaidhyani)：編輯器：為 cursorMove 命令新增 'foldedLine' 單位 [PR #296106](https://github.com/microsoft/vscode/pull/296106)
+- [@neruthes (Neruthes 0x5200DF38)](https://github.com/neruthes)：修正編輯器標點符號寬度 [PR #297741](https://github.com/microsoft/vscode/pull/297741)
+- [@RajeshKumar11](https://github.com/RajeshKumar11)：MCP Gateway：避免在啟動時阻塞列表呼叫 [PR #298040](https://github.com/microsoft/vscode/pull/298040)
+- [@Rohan5commit (Rohan Santhosh)](https://github.com/Rohan5commit)：docs：修正提案 API 註解中的重複用語 [PR #298522](https://github.com/microsoft/vscode/pull/298522)
+- [@sanchirico (John Sanchirico)](https://github.com/sanchirico)：修正聊天終端機在串流期間的閃爍 [PR #298598](https://github.com/microsoft/vscode/pull/298598)
+
+`vscode-copilot-chat` 程式碼貢獻者：
+
+- [@24anisha (Anisha Agarwal)](https://github.com/24anisha)：豁免搜尋子代理工具結果不寫入磁碟 [PR #4219](https://github.com/microsoft/vscode-copilot-chat/pull/4219)
+- [@arieluchka (Ariel Agranovich)](https://github.com/arieluchka)：docs：不正確的 Jaeger 埠號文件 <------ 簡單修正 [PR #4251](https://github.com/microsoft/vscode-copilot-chat/pull/4251)
+- [@bharatvansh (Ayush Singh)](https://github.com/bharatvansh)：避免將子代理 Token 使用量報告至上下文視窗小工具 [PR #3515](https://github.com/microsoft/vscode-copilot-chat/pull/3515)
+
+`language-server-protocol` 程式碼貢獻者：
+
+- [@dietrichm (Dietrich Moerman)](https://github.com/dietrichm)：修正 Neovim LSP 文件的連結 [PR #2236](https://github.com/microsoft/language-server-protocol/pull/2236)
+- [@MariaSolOs (Maria Solano)](https://github.com/MariaSolOs)：更新 metamodel [PR #2234](https://github.com/microsoft/language-server-protocol/pull/2234)
+
+---
+
+我們非常感謝大家在新功能準備就緒時便立即試用，請經常回來查看並了解最新動態。
+
+> 如果您想閱讀 VS Code 先前版本的發行說明，請前往 [code.visualstudio.com](https://code.visualstudio.com/) 上的 [Updates](https://code.visualstudio.com/updates)。
+
+---
+
+## 術語對照表
 
 | 英文 | 繁體中文 |
-|------|----------|
-| Weekly Stable Release | 每週穩定版本 |
-| Agent Permissions | 代理權限 |
+|------|---------|
+| Weekly Stable Release | 每週穩定版發行 |
+| Agent Permissions | Agent 權限 |
 | Permissions Picker | 權限選擇器 |
 | Default Approvals | 預設核准 |
 | Bypass Approvals | 略過核准 |
-| Autopilot | 自動駕駛 |
-| Agent-Scoped Hooks | 代理範圍掛鉤 |
-| Debug Events Snapshot | 除錯事件快照 |
-| Chat Tips | 聊天提示 |
-| Localization IntelliSense | 在地化智慧感知 |
-| Go to Definition | 前往定義 |
-| Find All References | 尋找所有參考 |
+| Autopilot | Autopilot（自動駕駛） |
+| Autonomy Level | 自主等級 |
+| Confirmation Dialog | 確認對話方塊 |
+| Auto-approve | 自動核准 |
+| Auto-retry | 自動重試 |
+| task_complete | task_complete 工具 |
+| Destructive Actions | 破壞性操作 |
+| Agent-scoped Hooks | Agent 範圍的掛鉤 |
 | YAML Frontmatter | YAML 前置資料 |
-| Tool Calling | 工具呼叫 |
-| Tool Poisoning | 工具投毒 |
-| Prompt Injection | 提示注入 |
-| Pre-processing | 前處理 |
-| Post-processing | 後處理 |
+| .agent.md | .agent.md 檔案 |
+| runSubagent | runSubagent |
+| Pre-processing / Post-processing | 前處理／後處理 |
+| Debug Events Snapshot | 偵錯事件快照 |
+| #debugEventsSnapshot | #debugEventsSnapshot |
+| Agent Debug Panel | Agent Debug 面板 |
 | Token Consumption | Token 消耗 |
-| Structured Onboarding | 結構化入門引導 |
-| Test Plan Items | 測試計畫項目 |
+| Chat Tips | 聊天提示 |
+| Onboarding Journey | 入門旅程 |
+| Foundational Tips | 基礎提示 |
+| Quality-of-life Tips | 生活品質提示 |
+| /init | /init 斜線命令 |
+| /fork | /fork 斜線命令 |
+| Conversation Forking | 對話分叉 |
+| AI CLI Profile Group | AI CLI 設定檔群組 |
+| Terminal Profile Dropdown | 終端機設定檔下拉選單 |
+| IntelliSense | IntelliSense |
+| Localized Strings | 本地化字串 |
+| Go to Definition | Go to Definition |
+| Find all References | Find all References |
+| package.nls.json | package.nls.json |
+| Test Plan Item | 測試計畫項目 |
 | Verification Steps | 驗證步驟 |
-| Feature Request Issues | 功能請求 Issue |
-| Model Context Protocol (MCP) | 模型上下文協定 |
-| Non-deterministic | 非確定性 |
-| Sandbox | 沙盒 |
+| PR Media Attachment | PR 媒體附件 |
+| Chat Showcase Pipeline | Chat Showcase 流水線 |
+| Edit Mode | 編輯模式（Edit Mode） |
+| Deprecated | 已棄用 |
 
 ---
 
-*注意：由於原始網頁（code.visualstudio.com）在此環境中無法直接存取完整全文，本翻譯內容是根據官方更新頁面的搜尋摘要、GitHub 上的原始 Markdown 檔案描述，以及多個相關報導來源整理而成。原始頁面中可能包含更多細節內容（如截圖、GIF 動畫示範、完整的程式碼範例等）。強烈建議參閱[原文頁面](https://code.visualstudio.com/updates/v1_111)以獲取最完整的資訊。*
-
-*翻譯來源：*
-- [VS Code 官方更新頁面](https://code.visualstudio.com/updates/v1_111)
-- [GitHub 原始碼 - v1_111.md](https://github.com/microsoft/vscode-docs/blob/main/release-notes/v1_111.md)
-- [The Register 報導](https://www.theregister.com/2026/03/11/visual_studio_code_moves_to/)
-- [DevClass 報導](https://www.devclass.com/development/2026/03/12/microsoft-ships-vs-code-weekly-adds-autopilot-mode-so-ai-can-wreak-havoc-without-bothering-you/5208978)
-- [Visual Studio Magazine 報導](https://visualstudiomagazine.com/articles/2026/03/11/vs-code-1-111-debuts-weekly-stable-cadence-expands-agent-controls.aspx)
-- [Neowin 報導](https://www.neowin.net/news/microsoft-switches-to-weekly-releases-of-visual-studio-code-here-is-version-1111/)
+*資料來源：[Visual Studio Code 1.111 發行說明](https://code.visualstudio.com/updates/v1_111)*

@@ -1,93 +1,109 @@
-# VS Code 2026 年 2 月更新（版本 1.110）— 重點摘要
+# Visual Studio Code 1.110 版本重點摘要
 
-> 發布日期：2026 年 3 月 4 日
-> 來源：[官方更新頁面](https://code.visualstudio.com/updates/v1_110)
-
----
-
-## 核心主題
-
-本次更新的核心主題是**讓 AI 代理（Agent）能夠處理更長時間、更複雜的任務**，為使用者提供更多控制權與可見性、全新的代理擴展方式，以及更智慧的工作階段管理。
+**版本：** 1.110（2026 年 2 月）
+**發行日期：** 2026 年 3 月 4 日
+**原文：** https://code.visualstudio.com/updates/v1_110
 
 ---
 
-## 重點功能一覽
+**安全更新**：GitHub Copilot Chat 擴充功能有安全更新。更新 1.110.1 解決了核心及 GitHub Copilot Chat 擴充功能中的安全問題。
 
-### 1. 代理外掛（Agent Plugins）（預覽版）
-- 全新的「代理外掛」系統，可安裝包含技能、命令、代理、MCP 伺服器和掛鉤的預打包套件
-- 在擴展檢視中輸入 `@agentPlugins` 或執行 `Chat: Plugins` 即可搜尋安裝
-- 預設從 `copilot-plugins` 和 `awesome-copilot` 儲存庫取得
+本次發行**讓 Agent 在處理更長時間、更複雜的任務時更加實用**，提供更多控制與可見性、全新的 Agent 擴展方式，以及更智慧的工作階段管理。以下為官方列出的九大亮點：
 
-### 2. 代理瀏覽器工具（Agentic Browser Tools）（實驗性）
-- AI 代理可在編輯器內操作瀏覽器：點擊元素、擷取截圖、讀取主控台日誌
-- 啟用方式：`workbench.browser.enableChatTools` 設定
-- 代理可自行驗證所做的前端變更
+## 一、Agent 外掛程式（實驗性）
 
-### 3. 工作階段記憶（Session Memory）
-- Plan 代理的計畫持久化至工作階段記憶中
-- 跨對話輪次保持可用，進行增量修改而非重建
+- 全新的 Agent 外掛程式系統，可安裝包含技能、命令、Agent、MCP 伺服器和掛鉤的預打包套件
+- 在擴充功能檢視中輸入 `@agentPlugins` 或執行 **Chat: Plugins** 搜尋安裝
+- 預設從 `copilot-plugins` 和 `awesome-copilot` 儲存庫取得，可透過 `chat.plugins.marketplaces` 新增更多來源
 
-### 4. 上下文壓縮（Context Compaction）
-- 自動壓縮：上下文視窗達上限時自動觸發
-- 手動壓縮：新增 `/compact` 斜線命令，適用於背景代理
+## 二、Agent 瀏覽器工具（實驗性）
 
-### 5. 分叉聊天工作階段（Fork Chat Session）
-- `/fork` 命令建立獨立的對話分支，繼承完整歷史
-- 適合比較不同實作策略
+- Agent 可自主使用整合式瀏覽器與您的應用程式互動並驗證變更
+- 提供頁面導航、內容讀取、螢幕截圖、使用者互動模擬、自訂 Playwright 程式碼執行等工具
+- 預設在私有的記憶體中工作階段運行，可明確共享頁面授權
+- 設定：`workbench.browser.enableChatTools`
 
-### 6. 代理除錯面板（Agent Debug Panel）（預覽版）
-- 即時查看代理事件、工具呼叫和已載入的自訂設定
-- 顯示系統提示詞和工具呼叫詳情
+## 三、工作階段記憶
 
-### 7. 休眠防護（Sleep Prevention）
-- 聊天請求執行期間防止系統自動暫停
-- 注意：合上未接電源的筆電仍會觸發休眠
+- Plan Agent 建立的計畫持久化至工作階段記憶，跨對話輪次保持可用
+- 進行調整時基於既有計畫修改而非重建
+- 較舊的對話歷史被壓縮後，計畫仍可在記憶中存取
 
-### 8. 編輯模式淘汰（Edit Mode Deprecated）
-- Edit Mode 正式被標記為淘汰，Agent Mode 已涵蓋其所有功能
-- 預設從模式選擇器中隱藏，將於版本 1.125 完全移除
+## 四、上下文壓縮
 
-### 9. 自動核准（Auto-Approve）
-- `/autoApprove` 斜線命令可跳過工具確認提示
-- npm/pnpm/yarn 腳本在 package.json 中定義時預設自動核准
-- 沙盒模式的 MCP 伺服器工具確認自動核准
+- VS Code 在上下文視窗達上限時自動壓縮對話歷史
+- 新增手動壓縮：`/compact` 斜線命令，適用於本機、背景和 Claude Agent 工作階段
+- 可在 `/compact` 後加入自訂指引（如 `/compact focus on the database schema decisions`）
 
-### 10. 新增代理工具
-- `/getDiagnostics`：直接將編輯器的警告和錯誤拉入聊天
-- `askQuestions` 工具移入 VS Code 核心，改善可靠性
+## 五、分叉聊天工作階段
 
----
+- `/fork` 命令建立繼承完整對話歷史的獨立工作階段
+- 也可從任何聊天請求懸停選取 **Fork Conversation** 從特定檢查點分叉
+- 分叉後的工作階段完全獨立
 
-## 其他重要改進
+## 六、Agent Debug 面板（Preview）
 
-### MCP 改進
-- Claude Agent 支援 MCP 伺服器，自動偵測已安裝的 MCP 伺服器
-- 新增本地 MCP 伺服器沙盒選項（stdio 傳輸），提供檔案系統和網路存取隔離
-- 沙盒伺服器僅能存取明確允許的路徑和網域
+- 即時查看聊天事件：自訂項目事件、系統提示、工具呼叫等
+- 檢視每個工作階段載入了哪些提示檔案、技能、掛鉤等自訂項目
+- 包含圖表檢視，顯示事件的視覺層次結構
+- 取代舊的 Diagnostics 聊天動作
 
-### 聊天無障礙功能
-- 問題輪播完全支援螢幕閱讀器（如「問題 1/3」的位置朗讀）
-- 聊天詢問或需要確認時播放無障礙信號並顯示系統通知
-- `⇧⌘T`（Ctrl+Shift+T）快速在代理 TODO 清單和聊天輸入間切換焦點
+## 七、聊天無障礙功能
 
-### 工作台（Workbench）
-- 通知位置可自訂：右上、右下或左下
-- 聊天設定移至設定編輯器的獨立頂層分類
-- 新增「複製導覽路徑（Copy Breadcrumbs Path）」命令
+- 可切換思考內容在無障礙檢視中的顯示（⌥T）
+- 問題輪播完全支援螢幕閱讀器（位置朗讀、Alt+N/Alt+P 導覽）
+- 聊天問題和確認的通知訊號
+- ⇧⌘T 在 TODO 清單和聊天輸入間切換焦點
+- 無障礙檢視中記憶游標位置、尋找/篩選的無障礙說明
 
-### 終端機
-- 支援 Kitty 圖形協定，可在整合式終端中顯示行內圖片
-- 終端機調整大小時支援像素尺寸回報
-- macOS 和 Linux 支援 Ghostty 作為外部終端機
+## 八、從聊天建立 Agent 自訂項目
 
-### 編輯器
-- 「反轉行」功能在單行選取時套用至整份文件
-- 修復多個可能導致編輯器延遲的版面重排問題
-- 「前往工作區符號」搜尋包含 `#` 字元時不再錯誤過濾結果（修正 rust-analyzer 相容性）
+- 新增 `/create-prompt`、`/create-instruction`、`/create-skill`、`/create-agent`、`/create-hook` 斜線命令
+- 可從進行中的對話提取模式（如將除錯流程擷取為可重用技能）
+- 也支援自然語言觸發
 
-### 語言支援
-- 改進 Shebang 語言偵測：如 `#!/usr/bin/env -S deno -A` 正確識別為 TypeScript
+## 九、Kitty 圖形協定
+
+- 整合式終端機支援 Kitty 圖形協定，可直接渲染高保真圖片
+- 支援 PNG、24 位元 RGB、32 位元 RGBA 格式
+- 設定：`terminal.integrated.enableImages`、`terminal.integrated.gpuAcceleration`
 
 ---
 
-*本摘要根據 VS Code 官方更新頁面及多個相關報導整理翻譯。建議參閱[原文](https://code.visualstudio.com/updates/v1_110)以獲取最完整的資訊。*
+## 其他重要更新
+
+- **背景 Agent 改善**：上下文壓縮、斜線命令、工作階段重新命名
+- **Claude Agent 改善**：引導與排隊、工作階段重新命名、上下文視窗渲染與壓縮、新增斜線命令、getDiagnostics 工具、效能改善
+- **自動核准斜線命令**：`/autoApprove`（`/yolo`）啟用全域自動核准
+- **Edit Mode 與 Ask Mode 變更**：Edit Mode 正式棄用（預設隱藏），Ask Mode 改由自訂 Agent 定義驅動
+- **askQuestions 工具**：移入 VS Code 核心，改善可靠性
+- **防止聊天期間自動暫停**
+- **usages 和 rename 工具**：Agent 可使用既有 LSP 能力精確導航和重構程式碼
+- **Explore 子代理**：Plan Agent 將程式碼庫研究委派給專用的唯讀 Explore 子代理
+- **內嵌聊天與聊天工作階段整合**：Agent 工作階段已修改檔案時，內嵌聊天排入該工作階段
+- **重新設計的模型選擇器**：分為 Auto、精選/最近使用、其他模型等區段
+- **情境式提示（實驗性）**：聊天檢視中顯示功能探索提示
+- **自訂思考短語**：可自訂載入文字（`chat.agent.thinking.phrases`）
+- **可摺疊的終端機工具呼叫**
+- **OS 通知改善**：可設為即使視窗獲得焦點時也顯示
+- **內嵌聊天懸停模式**、**內嵌聊天介面元素**
+- **模態編輯器（實驗性）**：設定、鍵盤快捷鍵等以浮動視窗開啟
+- **通知位置可配置**（右上、右下、左下）
+- **設定編輯器清理**
+- **長距離 NES**：在檔案任何位置預測和建議編輯
+- **NES 積極度**：在 Copilot 狀態列調整建議頻率
+- **Git AI 共同作者**：自動附加 `Co-authored-by:` 標記（`git.addAICoAuthor`）
+- **JavaScript 除錯器**：自訂屬性替換、模擬焦點視窗和事件監聽器中斷點
+- **Ghostty 外部終端機支援**（macOS/Linux）
+- **外部終端機工作區資料夾選擇**
+- **終端機沙箱化改善**
+- **統一的 JavaScript/TypeScript 設定**：移至 `js/ts.*` 前綴
+- **Python Environments 擴充功能**：向所有使用者推出
+- **GitHub Pull Requests 擴充功能改善**
+- **Webview 和自訂編輯器支援 ThemeIcon**
+- **可攜式模式偵測 API 定案**
+- **工程**：TypeScript-Go 用於 VS Code 開發、擴充功能改用 esbuild 打包
+
+---
+
+*資料來源：[Visual Studio Code 1.110 發行說明](https://code.visualstudio.com/updates/v1_110)*
