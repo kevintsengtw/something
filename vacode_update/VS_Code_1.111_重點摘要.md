@@ -1,88 +1,48 @@
-# VS Code 2026 年 3 月更新（版本 1.111）— 重點摘要
+# Visual Studio Code 1.111 版本重點摘要
 
-> 發布日期：2026 年 3 月 9 日
-> 來源：[官方更新頁面](https://code.visualstudio.com/updates/v1_111)
-
----
-
-## 里程碑：轉向每週發布
-
-版本 1.111 是 VS Code **首個每週穩定版本（Weekly Stable Release）**。Microsoft 傑出工程師 Kai Maetzel 表示，在精簡開發和交付流程後，VS Code 將從過去的每月發布改為**每週發布一個新的穩定版本**。這是 VS Code 發布策略的重大轉變，旨在加速功能交付。
+**版本：** 1.111
+**發行日期：** 2026 年 3 月 9 日
+**原文：** https://code.visualstudio.com/updates/v1_111
 
 ---
 
-## 核心主題
+本版本是 **VS Code 首個每週穩定版發行**，進一步強化 Agent 體驗。以下為官方列出的四大亮點：
 
-本次更新的所有新功能都與 **AI 代理體驗**相關，重點在於提升代理的自主性、可自訂性和可除錯性。
+## 一、Agent 權限
 
----
+- 聊天檢視中新增權限選擇器，可控制 Agent 的自主程度
+- 權限等級僅適用於目前工作階段，可隨時變更
+- 三種等級：**Default Approvals**（使用已設定的核准設定）、**Bypass Approvals**（自動核准所有工具呼叫並自動重試錯誤）、**Autopilot**（自動核准、自動回應問題、持續自主工作直到任務完成）
+- Bypass Approvals 和 Autopilot 會略過手動核准提示，包括具潛在破壞性的操作（檔案編輯、終端機命令、外部工具呼叫），首次啟用時會顯示警告對話方塊
 
-## 五大重點功能
+## 二、Autopilot（Preview）
 
-### 1. 代理權限選擇器（Agent Permissions Picker）
+- 在 Insiders 中預設啟用，Stable 版可透過 `chat.autopilot.enabled` 啟用
+- Agent 持續控制並反覆迭代，直到呼叫 `task_complete` 工具表示完成
 
-聊天檢視中新增權限選擇器，讓您決定給予代理多大的自主權。權限等級僅適用於當前工作階段，可隨時切換：
+## 三、Agent 範圍的掛鉤（Preview）
 
-| 權限等級 | 說明 |
-|----------|------|
-| **預設核准（Default Approvals）** | 使用您已設定的核准設定，需要核准的工具會顯示確認對話框 |
-| **略過核准（Bypass Approvals）** | 自動核准所有工具呼叫，不顯示確認對話框，並自動重試錯誤 |
-| **自動駕駛（Autopilot）**（預覽版） | 自動核准所有呼叫、自動重試錯誤、自動回應問題，代理持續自主工作直到任務完成 |
+- 自訂 Agent 的 YAML 前置資料現在支援 Agent 範圍的掛鉤
+- 僅在選取特定 Agent 或透過 `runSubagent` 呼叫時執行
+- 可為特定 Agent 附加前處理和後處理邏輯，不影響其他聊天互動
+- 透過 `chat.useCustomAgentHooks` 設定啟用
 
-> ⚠️ **安全警告**：略過核准和自動駕駛會繞過手動核准提示，包括檔案編輯、終端機命令和外部工具呼叫等潛在破壞性操作。
+## 四、Agent 疑難排解
 
-### 2. 自動駕駛模式（Autopilot）（預覽版）
-
-自動駕駛是本次更新最受關注的功能。啟用後代理將完全自主運作：
-
-- 自動核准所有工具呼叫
-- 錯誤時自動重試
-- 自動回應工具提出的問題（代理不會因等待回覆而停滯）
-- 持續工作直到任務完成
-
-啟用方式：設定 `chat.autopilot.enabled` 為 `true`。
-
-### 3. 代理範圍掛鉤（Agent-Scoped Hooks）（預覽版）
-
-自訂代理的 frontmatter 現在支援代理範圍掛鉤，僅在選擇特定代理或透過 `runSubagent` 調用時才會執行，不影響其他聊天互動。
-
-- 在 `.agent.md` 檔案的 YAML frontmatter 的 `hooks` 區段中定義
-- 啟用方式：設定 `chat.useCustomAgentHooks` 為 `true`
-- 支援前處理和後處理邏輯
-
-### 4. 代理除錯事件快照（Debug Events Snapshot）
-
-使用 `#debugEventsSnapshot` 可將代理除錯事件的快照作為上下文附加到聊天中，用於：
-
-- 查詢已載入的自訂設定
-- 監控 Token 消耗
-- 排查代理行為問題
-
-### 5. 在地化 IntelliSense（Localization IntelliSense）
-
-擴充功能的 `package.json` 中在地化字串現在支援基本 IntelliSense 功能：
-
-- **前往定義（Go to Definition）**：跳轉到或預覽 `package.nls.json` 檔案中在地化字串的定義
-- **尋找所有參考（Find All References）**：顯示在地化字串在 `package.json` 或 `package.nls.json` 中被引用的所有位置
+- 可透過 `#debugEventsSnapshot` 將 Agent 偵錯事件快照作為上下文附加至聊天
+- 用於詢問已載入的自訂項目、Token 消耗，或疑難排解 Agent 行為
+- 也可從 Agent Debug 面板右上角的聊天圖示新增快照附件
 
 ---
 
-## 工程流程改進
+## 其他
 
-- **一鍵建立測試計畫**：從功能請求 Issue 一鍵建立測試計畫項目，減少設定結構化測試計畫所需的手動步驟
-- **自動產生驗證步驟**：在相關 Issue 上新增按鈕，可自動產生驗證步驟，確保 Issue 在關閉前有清楚的結構化驗證步驟
-- **隨機分配測試**：測試計畫項目會隨機分配給工程師
-
----
-
-## 聊天提示改進（Chat Tips）
-
-聊天提示體驗重新設計：
-
-- 首次使用 VS Code 時顯示結構化入門提示
-- 入門提示完成後顯示生活品質提示（如實驗性設定）
-- 更相關的提示在正確的時機出現
+- **聊天提示改善**：重新設計的聊天提示體驗，引導使用者經歷結構化的入門旅程，新增 `/init` 和 `/fork` 斜線命令提示
+- **AI CLI 設定檔群組（實驗性）**：AI CLI 終端機設定檔顯示在終端機設定檔下拉選單頂部的專用群組中（`terminal.integrated.experimental.aiProfileGrouping`）
+- **擴充功能 package.json 本地化字串的基本 IntelliSense**：支援 Go to Definition 和 Find all References
+- **工程改善**：每週穩定版發行流程改善，包括一鍵建立測試計畫項目、自動生成驗證步驟、PR 媒體自動附加至關聯的 Issue、Chat Showcase 自動化流水線
+- **Edit Mode 將於 v1.125 完全移除**（自 v1.110 棄用）
 
 ---
 
-*本摘要根據 VS Code 官方更新頁面及多個相關報導整理翻譯。建議參閱[原文](https://code.visualstudio.com/updates/v1_111)以獲取最完整的資訊。*
+*資料來源：[Visual Studio Code 1.111 發行說明](https://code.visualstudio.com/updates/v1_111)*

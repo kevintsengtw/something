@@ -6,156 +6,128 @@
 
 ---
 
-歡迎使用 Visual Studio Code 1.115 版本。本次發行包含多項以 Agent-native 開發體驗為核心的功能強化，並在終端機、整合式瀏覽器與 CLI 等多個領域帶來顯著改善。
+歡迎使用 Visual Studio Code 1.115 版本。本次發行以全新的 VS Code Agents 伴隨應用程式的推出，讓您的 agent-native 開發體驗更上層樓！
 
-以下是本次發行的主要亮點：
+- **[VS Code Agents 應用程式](#visual-studio-code-agentspreview)**：一個專為 agent-native 開發最佳化的全新伴隨應用程式，與 VS Code Insiders 並行執行。
+- **[整合式瀏覽器](#整合式瀏覽器)**：多項改善讓 Agent 與整合式瀏覽器的協作更加無縫。
+- **[終端機工具](#終端機工具改善)**：Agent 與背景終端機互動的新能力。
 
-- **VS Code Agents 伴隨應用程式**：一個專為 agent-native 開發設計的全新預覽版應用程式，與 VS Code Insiders 一同發行
-- **背景終端機 Agent 工具**：Agent 可在背景終端機命令完成或需要輸入時自動收到通知
-- **終端機貼上檔案**：支援透過 `Ctrl+V`、拖放、右鍵將圖片等檔案直接貼到終端機
-- **Minimap 測試涵蓋率指示器**：在 Minimap 中顯示測試涵蓋率缺口
-- **整合式瀏覽器 macOS 捏合縮放**：支援觸控板捏合手勢純視覺放大
-- **`code serve-web` CLI 新選項**：新增 `--disable-telemetry`、`--default-folder`、`--default-workspace`
+Happy Coding!
 
 ---
 
-## GitHub Copilot
+## Visual Studio Code Agents（Preview）
 
-### VS Code Agents 伴隨應用程式（Preview）
+**Visual Studio Code Agents** 是一個全新的預覽版伴隨應用程式，與 VS Code Insiders 一同發行，專為 agent-native 開發打造。
 
-Visual Studio Code Agents 是一個全新的預覽版伴隨應用程式，與 VS Code Insiders 一同發行，專為 agent-native 開發打造，讓您可以更有效率地管理與多個 Agent 並行的工作流程。
+- **跨專案平行任務** — 可在多個儲存庫中平行啟動 Agent 工作階段（各自隔離在獨立的 worktree 中），快速切換上下文（UI 會根據您的選取調整），並在人工與 Agent 審查之間反覆迭代。
 
-#### 跨專案平行任務（Parallelize tasks across projects）
+- **監控與審查** — 追蹤工作階段進度、內嵌檢視 diff、對 Agent 留下回饋，並可直接在應用程式中建立 Pull Request，整個流程都無需離開該應用。
 
-您可以在多個儲存庫中平行啟動 Agent 工作階段，每個工作階段都隔離於自己的 Git worktree 中，避免彼此影響。UI 會根據您目前選取的工作階段動態調整，讓您能快速切換上下文，並在人工審查與 Agent 審查之間反覆迭代。
+- **自訂項目同步** — Custom instructions、prompt files、custom agents、MCP servers、hooks 與 plugins 皆可在 Agents 應用程式中使用，以及您的其他 VS Code 自訂項目，例如主題。
 
-#### 監控與審查（Monitor and review）
+- **無需額外安裝** — 此應用程式隨 VS Code Insiders 一同發行。從作業系統的開始功能表或應用程式資料夾啟動，或從命令面板執行 **Chat: Open Agents Application**。
 
-您可以追蹤工作階段進度、內嵌（inline）檢視檔案 diff、對 Agent 留下回饋，並直接在 Agents 應用程式中建立 Pull Request，整個流程都無需離開該應用。
-
-#### 自訂項目無縫帶入（Your customizations carry over）
-
-您現有的自訂項目會在 Agents 應用程式中同樣適用，包括自訂指令（custom instructions）、提示檔案（prompt files）、自訂 Agent、MCP 伺服器、Hooks、以及外掛程式（plugins）。此外，主題等其他 VS Code 自訂項目也會一併套用。
-
-### 背景終端機的 Agent 工具（Terminal Tools for Background Agents）
-
-本次發行為 Agent 與背景終端機互動提供了全新的能力。具體而言，新的實驗性設定 `chat.tools.terminal.backgroundNotifications` 啟用後，當背景終端機的命令完成執行或要求使用者輸入時，Agent 會自動被通知。
-
-此機制同樣適用於**前景終端機逾時被移至背景**的情況。收到通知後，Agent 可以採取適當行動，例如檢視輸出內容，或是透過新的 `send_to_terminal` 工具向終端機送出輸入。
-
-`send_to_terminal` 工具讓 Agent 可以在使用者確認下執行命令，而不再因背景程序干擾而靜默失敗。
-
-### Agent 工作階段檔案編輯追蹤
-
-Agent 工作階段現在具備追蹤檔案編輯的能力，可呈現 diff，並提供自動執行期間自訂項目變更的 undo／redo 功能。
-
-### 聊天參考瀏覽器分頁
-
-聊天功能現在可以參考工作階段期間所開啟的瀏覽器分頁，讓 Agent 能將網頁內容納入對話脈絡，提供更完整的上下文。
+Agents 應用程式是一個快速演進的預覽版。它目前僅在 VS Code Insiders 中可用，我們期待在 GitHub Issues 中收到您的回饋。
 
 ---
 
-## 整合式瀏覽器（Integrated Browser）
+## 整合式瀏覽器
 
-### Agent 瀏覽器分頁行為
+在本次發行中，我們持續強化整合式瀏覽器的體驗及其為 Agent 提供的能力。
 
-Agent 現在被更強烈地抑制重複開啟瀏覽器分頁。當 Agent 嘗試開啟新分頁、而同一主機已有可用分頁時，除非 Agent 明確傳入旗標，否則不會建立新分頁。此改進避免了工作階段中產生大量重複分頁的情況。
+### 瀏覽器 Agent 工具改善
 
-此外，當 Agent 呼叫瀏覽器工具時，工具呼叫現在會顯示更具描述性的標籤，並提供連結可直接跳至目標瀏覽器分頁，讓您更容易追蹤 Agent 正在操作的頁面。
+**設定**：`workbench.browser.enableChatTools`
 
-### macOS 捏合縮放（Pinch-to-Zoom on Mac）
+#### 更好的工具標籤
 
-整合式瀏覽器在 macOS 上新增支援觸控板捏合縮放手勢。您可以使用觸控板的捏合手勢將網頁內容放大最多 3 倍。
+當 Agent 呼叫瀏覽器工具時，工具呼叫現在具有更具描述性的標籤，以及一個可直接跳至目標瀏覽器分頁的連結。
 
-與標準瀏覽器縮放不同，捏合縮放是純視覺性放大，**不會** 重新排版網頁版面。這讓您可以在不改變頁面版面的情況下，放大檢視特定區域的細節。
+#### 長時間運行腳本支援
 
----
+`Run Playwright Code` 工具改善了對長時間運行腳本的支援。執行超過五秒（預設值）的腳本現在會回傳延遲結果（deferred result），供 Agent 輪詢。
 
-## 終端機（Terminal）
+#### 減少重複分頁
 
-### 將檔案貼上終端機（Paste Files into Terminal）
+Agent 現在被更強烈地抑制重複開啟瀏覽器分頁。當 Agent 嘗試開啟新分頁，而同一主機已有可用分頁開啟時，除非 Agent 明確傳入旗標，否則不會建立新分頁。
 
-終端機現在支援將檔案（例如圖片）直接貼上，支援下列三種方式：
+### 整合式瀏覽器中的捏合縮放（macOS）
 
-- `Ctrl+V`（鍵盤貼上）
-- 拖放（drag-and-drop）
-- 右鍵貼上
+[整合式瀏覽器](https://code.visualstudio.com/docs/debugtest/integrated-browser)現在在 macOS 上支援捏合縮放。使用觸控板的捏合手勢可將網頁內容放大最多 3 倍。
 
-過去若要在終端機中使用本地檔案，必須先將檔案存到磁碟上、再手動輸入或複製路徑。此改進消除了這個繁瑣步驟，對於偵錯工作階段、Agent 互動、以及其他需要快速提供檔案給 CLI 工具的場景特別有用。
+與標準瀏覽器縮放（`⌘=`（Windows、Linux 為 `Ctrl+=`）/ `⌘-`（Windows、Linux 為 `Ctrl+-`））不同，捏合縮放是純視覺性放大，不會重新排版頁面版面。
 
 ---
 
-## 編輯器（Editor）
+## 終端機工具改善
 
-### Minimap 顯示測試涵蓋率指示器（Test Coverage Indicators in Minimap）
+本次發行改善了 Agent 在背景執行終端機命令的體驗。
 
-編輯器的 Minimap（縮圖）現在可以顯示測試涵蓋率指示器。當您執行帶有涵蓋率的測試後，Minimap 會以視覺化方式呈現哪些程式碼行已被涵蓋、哪些尚未涵蓋，讓開發者能快速掃視並找出缺少測試涵蓋的區域。
+### 向背景終端機送出輸入
 
-此功能對於大型檔案特別有幫助，您無須逐行捲動即可了解檔案的整體涵蓋率狀況。
+先前，背景終端機是唯讀的，只有 `get_terminal_output` 可用。這在前景終端機逾時並移至背景時特別受限，因為 Agent 無法再與之互動。
 
----
+有了新的 `send_to_terminal` 工具，Agent 可以繼續與背景終端機互動。例如，如果 SSH 工作階段在等待密碼提示時逾時，Agent 仍可送出所需的輸入以完成連線。
 
-## CLI（`code serve-web`）
+### 背景終端機通知（實驗性）
 
-### 新增 CLI 選項
+**設定**：`chat.tools.terminal.backgroundNotifications`
 
-`code serve-web` CLI 命令新增了下列選項，強化本地伺服器與受控環境部署的彈性：
+先前，當終端機命令在背景執行時，Agent 必須手動呼叫 `get_terminal_output` 來檢查其狀態。沒有方法可以知道命令何時完成或需要輸入。
 
-| 選項 | 說明 |
-|------|------|
-| `--disable-telemetry` | 停用遙測資料收集 |
-| `--default-folder` | 指定伺服器啟動時開啟的預設資料夾 |
-| `--default-workspace` | 指定伺服器啟動時開啟的預設工作區 |
-
-這些選項對企業部署與自訂化工作流程非常重要，讓管理員能更精確地控制 `code serve-web` 的啟動行為，並符合隱私與合規需求。
+有了新的實驗性 `chat.tools.terminal.backgroundNotifications` 設定，Agent 在背景終端機命令完成或需要使用者輸入時會自動收到通知。這也適用於前景終端機逾時並被移至背景的情況。Agent 隨後可以採取適當行動，例如檢視輸出或透過 `send_to_terminal` 工具提供輸入。
 
 ---
 
-## 無障礙功能（Accessibility）
+## 已棄用的功能與設定
 
-### 無障礙檢視動態串流聊天回應
+### 本次發行的新棄用項目
 
-無障礙檢視（Accessible View）現在會動態串流聊天回應，在 AI 生成內容的過程中即時顯示。先前您必須關閉並重新開啟無障礙檢視才能看到最新內容，現在可以留在無障礙檢視中即時追蹤 AI 回應，大幅改善跟讀 AI 輸出的體驗。
+無
 
-### `${activeEditorLanguageId}` 變數
+### 即將棄用的項目
 
-`window.title` 設定新增了 `${activeEditorLanguageId}` 變數，可用於在視窗標題中顯示目前作用中編輯器的語言識別碼。
-
-此變數對於 Talon 等仰賴目前程式語言的無障礙工具特別有用，這類工具能透過視窗標題判斷目前的語言並套用對應的語音命令集。
+- **Edit Mode** 自 VS Code 1.110 版本起正式棄用。使用者可透過 VS Code 設定 `chat.editMode.hidden` 暫時重新啟用 Edit Mode。此設定將支援至 1.125 版本。從 1.125 版本開始，Edit Mode 將被完全移除，且無法再透過設定啟用。
 
 ---
 
-## Git 與原始碼控制（Source Control）
+## 重要修正
 
-### Worktree 忽略路徑計算最佳化
-
-Git 整合最佳化了 worktree 忽略路徑（ignored-path）的計算。在使用 Git worktree 功能時，VS Code 處理 `.gitignore` 的效率有所提升，特別是在大型儲存庫或含多個 worktree 的場景下能明顯感受到改善。
-
----
-
-## 重要修正（Notable Fixes）
-
-- 修正背景 Agent 工作階段行為，先前會在自動化工作流程中讓使用者感到困惑
-- 還原 macOS 整合式瀏覽器的捏合縮放功能（此前版本曾短暫失效）
-- Git worktree 忽略路徑計算效能最佳化
+- [vscode#304257](https://github.com/microsoft/vscode/issues/304257) — 整合式 pwsh 的終端機重啟可能導致游標跑到錯誤位置
+- [vscode#304679](https://github.com/microsoft/vscode/issues/304679) — Caps Lock 鍵在 VS Code 終端機中的 Claude Code 插入原始跳脫序列 `\[57358u`
 
 ---
 
-## 新設定摘要
+## 感謝
 
-| 設定 | 說明 |
-|------|------|
-| `chat.tools.terminal.backgroundNotifications`（實驗性） | 啟用後，背景終端機命令完成或需要輸入時會自動通知 Agent |
+Issue 追蹤貢獻者：
+
+- [@gjsjohnmurray (John Murray)](https://github.com/gjsjohnmurray)
+- [@RedCMD (RedCMD)](https://github.com/RedCMD)
+- [@IllusionMH (Andrii Dieiev)](https://github.com/IllusionMH)
+- [@albertosantini (Alberto Santini)](https://github.com/albertosantini)
+
+`vscode` 程式碼貢獻者：
+
+- [@andysharman](https://github.com/andysharman)：功能：新增預設新工作階段模式的 A/B 測試 [PR #306532](https://github.com/microsoft/vscode/pull/306532)
+- [@chetanr-25](https://github.com/chetanr-25)：改善動態樣式表規則的型別安全 [PR #288651](https://github.com/microsoft/vscode/pull/288651)
+- [@danplischke (Dan Plischke)](https://github.com/danplischke)：為 serve-web CLI 新增 default-folder、default-workspace 與 disable-telemetry [PR #299512](https://github.com/microsoft/vscode/pull/299512)
+- [@mossgowild (moss)](https://github.com/mossgowild)：修正：防止 _extractImagesFromOutput 中的災難性正則回溯 [PR #307447](https://github.com/microsoft/vscode/pull/307447)
+- [@xingsy97 (xingsy97)](https://github.com/xingsy97)：comments：修正在註解面板中回收樹狀項目時的記憶體洩漏 [PR #304666](https://github.com/microsoft/vscode/pull/304666)
+- [@yogeshwaran-c (Yogeshwaran C)](https://github.com/yogeshwaran-c)
+  - 修正：將視窗標題中的編輯器服務範圍限定至自身的編輯器群組容器 [PR #306226](https://github.com/microsoft/vscode/pull/306226)
+  - 修正：重新開啟中斷點小工具時保留「Wait for Breakpoint」選取 [PR #306564](https://github.com/microsoft/vscode/pull/306564)
+  - 修正：在尋找輸入的方向鍵導航中包含額外的切換項 [PR #306559](https://github.com/microsoft/vscode/pull/306559)
+  - 功能：在 Minimap 中顯示涵蓋率指示器 [PR #307250](https://github.com/microsoft/vscode/pull/307250)
+  - 修正：改善測試涵蓋率篩選快速選取的可讀性 [PR #306562](https://github.com/microsoft/vscode/pull/306562)
+  - 修正：在測試總管中將無法識別的 @-前綴文字視為一般篩選 [PR #307555](https://github.com/microsoft/vscode/pull/307555)
 
 ---
 
-## 新 CLI 選項摘要（`code serve-web`）
+我們非常感謝大家在新功能準備就緒時便立即試用，請經常回來查看並了解最新動態。
 
-| 選項 | 說明 |
-|------|------|
-| `--disable-telemetry` | 停用 serve-web 遙測 |
-| `--default-folder` | 指定預設開啟資料夾 |
-| `--default-workspace` | 指定預設開啟工作區 |
+> 如果您想閱讀 VS Code 先前版本的發行說明，請前往 [code.visualstudio.com](https://code.visualstudio.com/) 上的 [Updates](https://code.visualstudio.com/updates)。
 
 ---
 
@@ -163,54 +135,52 @@ Git 整合最佳化了 worktree 忽略路徑（ignored-path）的計算。在使
 
 | 英文 | 繁體中文 |
 |------|---------|
-| VS Code Agents | VS Code Agents 伴隨應用程式 |
+| Visual Studio Code Agents | Visual Studio Code Agents 應用程式 |
 | Companion App | 伴隨應用程式 |
 | Agent-native Development | Agent 原生開發 |
-| Parallelize tasks | 平行任務 |
-| Worktree | Git 工作樹（worktree） |
-| Worktree Isolation | Worktree 隔離 |
+| Preview | 預覽版 |
+| VS Code Insiders | VS Code Insiders |
+| Parallelize Tasks | 平行任務 |
+| Worktree | Worktree（Git 工作樹） |
 | Monitor and Review | 監控與審查 |
 | Inline Diffs | 內嵌 diff |
-| Pull Request | Pull Request（PR） |
-| Custom Instructions | 自訂指令 |
-| Prompt Files | 提示檔案 |
-| Custom Agents | 自訂 Agent |
+| Pull Request | Pull Request |
+| Custom Instructions | 自訂指令（Custom Instructions） |
+| Prompt Files | 提示檔案（Prompt Files） |
+| Custom Agents | 自訂 Agent（Custom Agents） |
 | MCP Servers | MCP 伺服器 |
 | Hooks | Hooks |
-| Plugins | 外掛程式 |
+| Plugins | 外掛程式（Plugins） |
+| Command Palette | 命令面板 |
+| Integrated Browser | 整合式瀏覽器 |
+| Browser Agent Tools | 瀏覽器 Agent 工具 |
+| Tool Labels | 工具標籤 |
+| Tool Calls | 工具呼叫 |
+| Run Playwright Code | Run Playwright Code 工具 |
+| Deferred Result | 延遲結果 |
+| Polling | 輪詢 |
+| Duplicate Tabs | 重複分頁 |
+| Explicit Flag | 明確旗標 |
+| Pinch-to-zoom | 捏合縮放 |
+| Visual Magnification | 視覺性放大 |
+| Reflow | 重新排版 |
 | Terminal Tools | 終端機工具 |
 | Background Terminals | 背景終端機 |
 | Foreground Terminals | 前景終端機 |
-| chat.tools.terminal.backgroundNotifications | chat.tools.terminal.backgroundNotifications 設定 |
 | send_to_terminal | send_to_terminal 工具 |
-| Exit Code | 結束代碼 |
-| Paste Files into Terminal | 終端機貼上檔案 |
-| Drag-and-drop | 拖放 |
-| Right-click Paste | 右鍵貼上 |
-| Minimap | 縮圖（Minimap） |
-| Test Coverage Indicators | 測試涵蓋率指示器 |
-| Pinch-to-Zoom | 捏合縮放 |
-| Integrated Browser | 整合式瀏覽器 |
-| Visual Magnification | 視覺放大 |
-| Reflow | 重新排版 |
-| Browser Tabs | 瀏覽器分頁 |
-| Browser Tool | 瀏覽器工具 |
-| File Edits with Diff | 檔案編輯 diff |
-| Undo/Redo | 復原／重做 |
-| code serve-web | code serve-web CLI |
-| --disable-telemetry | --disable-telemetry 選項 |
-| --default-folder | --default-folder 選項 |
-| --default-workspace | --default-workspace 選項 |
-| Accessible View | 無障礙檢視 |
-| Dynamic Streaming | 動態串流 |
-| ${activeEditorLanguageId} | ${activeEditorLanguageId} 變數 |
-| window.title | window.title 設定 |
-| Language Identifier | 語言識別碼 |
-| Talon | Talon（語音控制工具） |
-| Git Worktree | Git 工作樹 |
-| Ignored-path Computation | 忽略路徑計算 |
-| VS Code Insiders | VS Code Insiders（預覽版） |
+| get_terminal_output | get_terminal_output 工具 |
+| Read-only | 唯讀 |
+| Background Terminal Notifications | 背景終端機通知 |
+| chat.tools.terminal.backgroundNotifications | chat.tools.terminal.backgroundNotifications 設定 |
+| Edit Mode | 編輯模式（Edit Mode） |
+| Deprecated | 已棄用 |
+| Notable Fixes | 重要修正 |
+| Integrated pwsh | 整合式 pwsh |
+| Escape Sequence | 跳脫序列 |
+| Minimap | Minimap（縮圖） |
+| Coverage Indicators | 涵蓋率指示器 |
+| Catastrophic Regex Backtracking | 災難性正則回溯 |
 
 ---
 
-*資料來源：VS Code 1.115 發行說明 (https://code.visualstudio.com/updates/v1_115)*
+*資料來源：[Visual Studio Code 1.115 發行說明](https://code.visualstudio.com/updates/v1_115)*

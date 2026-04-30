@@ -6,171 +6,144 @@
 
 ---
 
-歡迎使用 Visual Studio Code 1.117 版本。本次發行以 Agent 權限管理、終端機工具改善、Agent Host Protocol 協定強化以及 Agents 應用程式的自動更新為核心，持續深化 agent-native 開發體驗。
+歡迎使用 Visual Studio Code 1.117 版本。本次發行為 Copilot Enterprise 與 Business 使用者新增功能，並進一步改善 VS Code 中的 Agent 體驗。以下是本次發行的亮點：
 
-以下是本次發行的主要亮點：
+- **[BYOK 支援 Business 與 Enterprise](#自帶金鑰支援-copilot-business-與-enterprise)**：在 VS Code 聊天中直接連接您自己的 API 金鑰，使用偏好或專門的模型。
+- **[漸進式聊天渲染](#聊天回應漸進式渲染實驗性)**：體驗更流暢的聊天回應串流。
+- **[終端機改善](#終端機)**：從任何終端機設定檔啟動 Copilot CLI。
 
-- **Run VS Code Command Agent 工具**：新增命令白名單與更精細核准支援
-- **Agent Sessions 排序**：可依建立或更新時間排序工作階段
-- **編輯佇列中的聊天訊息**：佇列訊息新增右鍵 Edit 動作
-- **終端機 Agent 工具擴展至前景終端機**：`send_to_terminal` 與 `get_terminal_output` 不再限於背景終端機
-- **背景終端機通知改為系統通知**：提升可發現性與無障礙性
-- **Autopilot 權限模式跨工作階段持續**：新增 `chat.permissions.default` 設定
-- **Agent Host Protocol 子代理與代理團隊**：支援 worktree 與 Git 隔離
-- **Copilot CLI 有意義分支名稱**：根據提示自動產生描述性分支名
-- **Copilot CLI / Claude Code / Gemini CLI 認定為 Shell 類型**
-- **Agents 應用程式 macOS 自動更新**
-- **package.json 相依性懸停**：同時顯示已安裝版本與最新發佈版本
+Happy Coding!
 
 ---
 
-## GitHub Copilot
+## 自帶金鑰支援 Copilot Business 與 Enterprise
 
-### Run VS Code Command Agent 工具 — 指令白名單與更精細核准
+團隊經常因合規、效能或成本原因需要特定模型，但在不同工具之間切換以使用這些模型會拖慢開發者的速度。自帶語言模型金鑰（BYOK）讓 Copilot Business 與 Enterprise 使用者可以連接自己的 API 金鑰，支援 OpenRouter、Ollama、Google、OpenAI 等供應商，在 VS Code 聊天中直接使用這些模型。
 
-Run VS Code command Agent 工具已更新，新增對**允許清單（allowlisting）** 特定命令的支援，以及**更精細（narrower）的核准** 機制。
+預設情況下，BYOK 為啟用狀態，管理員可透過 GitHub.com 上 [Copilot 政策設定](https://github.com/settings/copilot/features)中的 **Bring Your Own Language Model Key** 政策來停用。這讓管理員可以控制哪些模型供應商可用於其組織，同時讓開發者留在既有的工作流程中。
 
-此功能讓使用者能夠更精確地控制 Agent 可以執行哪些 VS Code 命令。您可以將信任的命令加入白名單，Agent 執行這些命令時不需要每次都手動核准；而對於未列入白名單的命令，則仍會要求確認。這在自動化工作流程中，既提升了效率又保持了安全性。
-
-### Agent Sessions 檢視排序
-
-Agent Sessions 檢視（Agent Sessions view）新增**排序支援**，可依照以下方式排列工作階段：
-
-- **建立時間（Created）**：依照工作階段建立的時間排序
-- **更新時間（Updated）**：依照工作階段最後更新的時間排序
-
-當您同時管理多個 Agent 工作階段時，此功能讓您能快速找到最近使用或最新建立的工作階段。
-
-### 編輯已排入佇列的聊天訊息
-
-您現在可以透過佇列訊息右鍵選單（context menu）中新增的**「編輯」（Edit）動作**，直接修改已排入佇列的聊天訊息。
-
-此改進消除了「取消排程 → 重新輸入」的繁瑣流程。當您發現已排入佇列但尚未送出的訊息需要調整時，可以直接就地編輯。
-
-### Autopilot 權限模式跨工作階段持續生效
-
-Autopilot 權限模式現在**跨工作階段持續生效（persists across sessions）**，不再於每次新開工作階段時重設。
-
-您可以使用新的 `chat.permissions.default` 設定來配置預設的權限等級。
-
-此外，Agent Host 現在支援**自動核准工作階段配置（auto-approve session configuration）**，提供以下三種模式：
-
-| 模式 | 說明 |
-|------|------|
-| **Default Approvals**（預設核准） | 每次工具呼叫皆需使用者確認 |
-| **Bypass Approvals**（略過核准） | 自動核准所有工具呼叫，不顯示確認對話框，並在錯誤時自動重試 |
-| **Autopilot（Preview）**（自動駕駛，預覽版） | 自動核准所有工具呼叫、自動回應問題，並持續自主運作直到任務完成 |
+政策啟用後，組織成員可以[從內建供應商新增模型](https://code.visualstudio.com/docs/copilot/customization/language-models#_bring-your-own-language-model-key)或安裝語言模型供應商擴充功能。
 
 ---
 
-## 終端機（Terminal）
+## 聊天體驗
 
-### Agent 工具擴展至前景終端機
+### 聊天回應漸進式渲染（實驗性）
 
-`send_to_terminal` 和 `get_terminal_output` 兩個 Agent 工具，先前僅限於 Agent 自行建立的背景終端機，現在**也支援前景終端機（foreground terminals）**。
+聊天回應透過漸進式渲染（incremental rendering）變得更加流暢與自然，內容以區塊為單位（block-by-block）串流，Token 到達時附帶可選動畫。這種實驗性方式取代預設的計時器式渲染，在每個區塊準備好時即進行渲染，降低較長回應的感知等待時間。
 
-這代表 Agent 現在可以：
+透過以下設定配置漸進式回應渲染：
 
-- 讀取終端機面板中**任何可見終端機**的輸出
-- 向這些終端機送出輸入
+- `chat.experimental.incrementalRendering.enabled`：啟用或停用漸進式回應渲染，串流聊天回應時附帶可選的區塊層級動畫。預設：`true`。
+- `chat.experimental.incrementalRendering.animationStyle`：配置漸進式回應渲染的動畫風格。選項：`none`、`fade`、`rise`、`blur`、`scale`、`slide`、`reveal`。預設：`fade`。
+- `chat.experimental.incrementalRendering.buffering`：配置漸進式回應渲染期間內容在渲染前的緩衝方式。較低的緩衝等級渲染更快，但可能顯示不完整的句子或部分形成的 Markdown。選項：`off`、`word`、`paragraph`。預設：`word`。
 
-例如，當您有一個正在執行的 REPL 或互動式腳本時，Agent 可以直接與之互動。
+### 依最近活動排序 Agent 工作階段
 
-此外，當 Agent 向終端機送出輸入時，終端機輸出會在**短暫延遲後自動包含在結果中**，省去了額外的 Agent 輪次（saving an extra agent turn），讓互動流程更加流暢。
+當您累積了許多 Agent 工作階段時，找到正確的那一個可能會很困難。**Agent Sessions** 檢視支援依工作階段的建立時間或最後更新時間排序，讓您可以快速回到中斷的地方繼續。
 
-### 背景終端機命令完成通知改為系統通知
+### 背景終端機命令的系統通知
 
-背景終端機命令完成現在以**系統通知（system notification）** 的方式呈現，不再僅以聊天回應中的行內文字（inline text）顯示。
-
-此變更改善了兩個面向：
-
-- **可發現性（discoverability）**：系統通知更容易被注意到
-- **無障礙性（accessibility）**：螢幕閱讀器等輔助工具能更好地識別通知
-
-### Copilot CLI、Claude Code、Gemini CLI 認定為 Shell 類型
-
-**Copilot CLI**、**Claude Code** 與 **Gemini CLI** 現在被 VS Code 認定為終端機中的 Shell 類型（shell types）。VS Code 能夠正確識別這些 CLI 工具正在終端機中執行，並提供相應的整合體驗。
-
-同時，Copilot CLI 工作階段現在會**標示是由 VS Code 建立還是由外部建立**，方便使用者區分工作階段來源。
-
-### Copilot CLI — 有意義的分支名稱
-
-Copilot CLI 為背景 Agent 工作階段建立 worktree 時，會**根據使用者的提示（prompt）產生有意義的分支名稱**。
-
-過去 worktree 的分支名稱可能使用通用識別碼，現在會產生描述性的名稱，讓使用者更容易辨識每個 worktree 與其對應的任務或 Agent。
+當 Agent 在背景執行一個長時間運作的終端機命令時，很容易失去對其進度的追蹤。這些命令現在會以**系統通知**的形式出現在聊天回應中，讓您無需切換到終端機即可監控其狀態。
 
 ---
 
-## Agent Host Protocol
+## Agent 體驗
 
-### 子代理與代理團隊支援
+### Visual Studio Code Agents（Insiders）
 
-Agent Host Protocol 新增對**子代理（subagents）** 與**代理團隊（agent teams）** 的支援。這讓多個 Agent 能夠在同一個工作流程中協作，主 Agent 可以將子任務委派給子代理執行。
+> **注意**：Visual Studio Code Agents 應用程式目前為預覽版，僅在安裝 VS Code Insiders 時可用。
 
-### Worktree 與 Git 隔離
+Visual Studio Code Agents 應用程式是與 VS Code Insiders 一同發行的伴隨應用程式，提供一個專注的、agent-native 環境，讓您可以跨儲存庫執行平行工作階段、內嵌審查 diff，並反覆處理多步驟編碼任務。此應用程式在 [1.115](https://code.visualstudio.com/updates/v1_115#_visual-studio-code-agents-preview) 中推出，並持續根據回饋進行演進。
 
-Agent Host 工作階段新增 **worktree 與 Git 隔離** 支援。每個子代理可以在獨立的 Git worktree 中運作，防止多個 Agent 平行執行時互相衝突，確保各自的變更不會影響主工作區或其他 Agent 的工作。
+本次發行的更新：
 
-### 自動核准工作階段配置
+- **建立子工作階段**：在工作階段標題中選取 **+** 即可從目前工作階段衍生子工作階段。這對於在上下文中啟動額外工作（例如平行研究或程式碼審查）很方便，不會失去您在父工作階段中的位置。
+- **行內變更渲染**：改善了行內變更的渲染方式，讓您在 Agent 編輯程式碼時更容易掃視與比較 diff。
+- **更新體驗**：跨作業系統的更新流程改善，讓保持在最新版本更加順暢。
+- **主題、聊天回應與 UX 精進**：持續改進主題、工作階段清單與回應渲染，以及應用程式整體的 UX。
 
-Agent Host 支援自動核准工作階段配置，提供 Default Approvals、Bypass Approvals 與 Autopilot（Preview）三種模式（詳見上方「Autopilot 權限模式」章節）。
+如同先前版本，您可以透過相同方式開啟應用程式：
 
----
-
-## VS Code Agents 應用程式
-
-### macOS 自動更新
-
-Agents 應用程式新增在 **macOS** 上的**自動更新（self-updating）** 支援。當有新版本可用時，應用程式可以自動更新，無需使用者手動下載與安裝。
-
----
-
-## 工作區介面（Workbench）
-
-### 輔助（浮動）視窗切換
-
-新增從**輔助視窗（auxiliary windows / floating windows）切換回主視窗**的支援。當您使用浮動視窗功能時，可以更輕鬆地在主視窗與輔助視窗之間來回切換。
+- 從作業系統的開始功能表或應用程式資料夾啟動 **Visual Studio Code Agents - Insiders**。
+- 從 VS Code Insiders 命令面板執行 **Chat: Open Agents Application**。
+- 從 VS Code Insiders 歡迎頁面選取 **Try out the new Agents app**。
 
 ---
 
-## 編輯器與語言（Editor & Languages）
+## 終端機
 
-### package.json 相依性懸停 — 顯示已安裝與最新版本
+### 從自訂終端機設定檔啟動 Copilot CLI
 
-在 `package.json` 檔案中，相依性的**懸停資訊（dependency hover）** 現在會**同時顯示目前已安裝版本（installed version）** 與**最新發佈版本（latest published version）**。
+Copilot CLI 終端機設定檔現在可以從終端機面板啟動，即使您的預設終端機設定檔設為非預設 Shell，例如 macOS 或 Linux 上的 `fish`，或 Windows 上的 Git Bash。
 
-先前懸停只會顯示單一版本資訊，現在開發者不需要離開編輯器、也不需要執行 `npm outdated`，即可直觀了解哪些套件有可用的更新。
+先前，在此配置下從終端機設定檔選擇器中選取 **GitHub Copilot CLI** 會產生 `No terminal profile options provided for id 'copilot-cli'` 錯誤，且終端機無法啟動。
 
----
+### Agent CLI 的終端機標題
 
-## 新／更新設定摘要
+像 Copilot CLI、Claude Code 和 Gemini CLI 這樣的 Agent CLI 通常作為 `node` 程序執行，這意味著終端機標題會顯示通用的 `node` 標籤。這讓人很難分辨每個終端機中執行的是哪個 Agent。終端機現在將這些 Agent CLI 偵測為獨立的 Shell 類型，並使用 CLI 發出的 OSC 標題序列作為終端機標題，讓每個終端機清楚地標示它正在承載的 Agent。
 
-| 設定 | 說明 |
-|------|------|
-| `chat.permissions.default` | 配置預設的權限等級（用於 Autopilot 等權限模式） |
+改善後的偵測涵蓋 macOS、Linux 和 Windows 上的 Copilot CLI、Claude Code 和 Gemini CLI。Codex 目前在 macOS 上尚未被偵測，因為它目前不會發出 OSC 標題序列。此行為預設啟用，可透過 `terminal.integrated.tabs.allowAgentCliTitle` 設定切換。
 
 ---
 
-## 新功能摘要
+## 語言
 
-| 功能 | 說明 |
-|------|------|
-| Run VS Code Command 白名單 | Agent 工具支援命令允許清單與更精細核准 |
-| Agent Sessions 排序 | 可依建立或更新時間排序工作階段 |
-| 編輯佇列中訊息 | 右鍵選單新增 Edit 動作 |
-| 前景終端機 Agent 工具 | `send_to_terminal` / `get_terminal_output` 支援前景終端機 |
-| 終端機輸出自動包含 | Agent 送出輸入後自動附帶輸出，省去額外輪次 |
-| 背景終端機系統通知 | 命令完成改以系統通知呈現 |
-| Autopilot 跨工作階段 | 權限模式持續生效 |
-| Auto-approve 三模式 | Default / Bypass / Autopilot（Preview） |
-| 子代理與代理團隊 | Agent Host Protocol 新增支援 |
-| Worktree / Git 隔離 | Agent Host 工作階段支援 |
-| 有意義分支名稱 | Copilot CLI 依提示產生描述性分支名 |
-| Shell 類型辨識 | Copilot CLI / Claude Code / Gemini CLI |
-| CLI 工作階段來源標示 | 標示由 VS Code 或外部建立 |
-| Agents App macOS 自更新 | 自動更新支援 |
-| 輔助視窗切換 | 從浮動視窗切回主視窗 |
-| package.json 懸停 | 同時顯示已安裝版本與最新版本 |
+### TypeScript 6.0.3
+
+本次發行包含 [TypeScript 6.0.3](https://github.com/microsoft/typescript/issues?q=milestone%3A%22TypeScript%206.0.3%22) 修復版本。此次小版本更新修正了數個匯入（import）錯誤與回歸。
+
+---
+
+## 已棄用的功能與設定
+
+### 本次發行的新棄用項目
+
+（無）
+
+### 即將棄用的項目
+
+（無）
+
+---
+
+## 感謝
+
+Issue 追蹤貢獻者：
+
+- [@gjsjohnmurray (John Murray)](https://github.com/gjsjohnmurray)
+- [@RedCMD (RedCMD)](https://github.com/RedCMD)
+- [@IllusionMH (Andrii Dieiev)](https://github.com/IllusionMH)
+- [@albertosantini (Alberto Santini)](https://github.com/albertosantini)
+
+`vscode` 程式碼貢獻者：
+
+- [@abadawi591 (abadawi-msft)](https://github.com/abadawi591)：Abadawi/send has image to router [PR #308321](https://github.com/microsoft/vscode/pull/308321)
+- [@andysharman](https://github.com/andysharman)：修正：預設工作階段模式實驗在首次工作階段時未套用 [PR #308905](https://github.com/microsoft/vscode/pull/308905)
+- [@bocan (Chris Funderburg)](https://github.com/bocan)：修正 launch.json configurations 陣列中 null 項目導致的崩潰 [PR #308235](https://github.com/microsoft/vscode/pull/308235)
+- [@jamestut (James Nugraha)](https://github.com/jamestut)：在終端機編輯器分割中 await openEditor 以防止影子分頁 [PR #309167](https://github.com/microsoft/vscode/pull/309167)
+- [@maruthang (Maruthan G)](https://github.com/maruthang)
+  - 修正（tasks）：在 taskDefinitions 貢獻 schema 中為必要屬性新增懸停描述 (#275670) [PR #310764](https://github.com/microsoft/vscode/pull/310764)
+  - 修正（debug）：以解析後的位址識別指令斷點，允許在 instructionReference 變更時移除 (#289678) [PR #310763](https://github.com/microsoft/vscode/pull/310763)
+  - 修正（terminal-chat）：去重終端機工具工作階段註冊以防止監聽器洩漏 (#309906) [PR #310740](https://github.com/microsoft/vscode/pull/310740)
+  - 修正（chat）：在 renderWelcomeViewContentIfNeeded 中防範未釋放的 input part (#310356) [PR #310822](https://github.com/microsoft/vscode/pull/310822)
+  - 修正：防止語言狀態中重複 status ID 導致的監聽器洩漏 (#309042) [PR #309159](https://github.com/microsoft/vscode/pull/309159)
+  - 修正（chat）：當回應被取消時，取消進行中的串流工具呼叫 (#288701) [PR #310979](https://github.com/microsoft/vscode/pull/310979)
+- [@matts1 (Matt)](https://github.com/matts1)：功能：支援切換至主視窗 [PR #306573](https://github.com/microsoft/vscode/pull/306573)
+- [@NikolaRHristov (Nikola Hristov)](https://github.com/NikolaRHristov)：修正：將 protected 成員改為 public 以解決 mangler 建置錯誤 [PR #310195](https://github.com/microsoft/vscode/pull/310195)
+- [@OscarPalafox (Oscar Palafox Verna)](https://github.com/OscarPalafox)：統一 theme-defaults 中新 2026 年的 include 路徑 [PR #309880](https://github.com/microsoft/vscode/pull/309880)
+- [@RieBi (Sviatoslav Zubar)](https://github.com/RieBi)：除了最新發佈版本外，另外顯示目前已安裝的套件版本 [PR #308569](https://github.com/microsoft/vscode/pull/308569)
+- [@yogeshwaran-c (Yogeshwaran C)](https://github.com/yogeshwaran-c)
+  - json：修正語言模型快取在容量達上限時就驅逐而非溢出時才驅逐 [PR #309176](https://github.com/microsoft/vscode/pull/309176)
+  - 當 openDebug 為 openOnDebugBreak 時，不在首次工作階段啟動時開啟除錯檢視 [PR #309133](https://github.com/microsoft/vscode/pull/309133)
+  - testing：對齊壓縮結果列上的右鍵選單與懸停列 [PR #309139](https://github.com/microsoft/vscode/pull/309139)
+  - 為內建 CSS 伺服器採用 CodeAction 類型 [PR #310055](https://github.com/microsoft/vscode/pull/310055)
+
+---
+
+我們非常感謝大家在新功能準備就緒時便立即試用，請經常回來查看並了解最新動態。
+
+> 如果您想閱讀 VS Code 先前版本的發行說明，請前往 [code.visualstudio.com](https://code.visualstudio.com/) 上的 [Updates](https://code.visualstudio.com/updates)。
 
 ---
 
@@ -178,51 +151,47 @@ Agents 應用程式新增在 **macOS** 上的**自動更新（self-updating）**
 
 | 英文 | 繁體中文 |
 |------|---------|
-| Run VS Code Command | 執行 VS Code 命令 |
-| Allowlisting | 允許清單（白名單） |
-| Narrower Approvals | 更精細核准 |
+| Bring Your Own Key (BYOK) | 自帶金鑰（BYOK） |
+| Copilot Business / Enterprise | Copilot Business / Enterprise |
+| API Keys | API 金鑰 |
+| Language Model Provider | 語言模型供應商 |
+| OpenRouter, Ollama, Google, OpenAI | OpenRouter、Ollama、Google、OpenAI |
+| Policy Settings | 政策設定 |
+| Incremental Rendering | 漸進式渲染 |
+| Block-by-block | 以區塊為單位 |
+| Animation Style | 動畫風格 |
+| Buffering | 緩衝 |
+| Perceived Wait Time | 感知等待時間 |
 | Agent Sessions View | Agent Sessions 檢視 |
-| Sorting by Created / Updated | 依建立時間／更新時間排序 |
-| Queued Chat Messages | 已排入佇列的聊天訊息 |
-| Context Menu | 右鍵選單 |
-| Edit Action | 編輯動作 |
-| send_to_terminal | send_to_terminal 工具 |
-| get_terminal_output | get_terminal_output 工具 |
-| Foreground Terminals | 前景終端機 |
-| Background Terminals | 背景終端機 |
-| REPL | REPL（互動式直譯器） |
-| Extra Agent Turn | 額外的 Agent 輪次 |
-| System Notification | 系統通知 |
-| Inline Text | 行內文字 |
-| Discoverability | 可發現性 |
-| Autopilot Permission Mode | Autopilot 權限模式 |
-| Persists Across Sessions | 跨工作階段持續生效 |
-| chat.permissions.default | chat.permissions.default 設定 |
-| Auto-approve Session Configuration | 自動核准工作階段配置 |
-| Default Approvals | 預設核准 |
-| Bypass Approvals | 略過核准 |
-| Autopilot (Preview) | 自動駕駛（預覽版） |
-| Agent Host Protocol | Agent Host Protocol（協定） |
-| Subagents | 子代理 |
-| Agent Teams | 代理團隊 |
-| Worktree Isolation | Worktree 隔離 |
-| Git Isolation | Git 隔離 |
+| Sort by Created / Updated | 依建立時間／更新時間排序 |
+| System Notifications | 系統通知 |
+| Background Terminal Commands | 背景終端機命令 |
+| VS Code Agents App | VS Code Agents 應用程式 |
+| Companion App | 伴隨應用程式 |
+| Agent-native Environment | Agent 原生環境 |
+| Sub-session | 子工作階段 |
+| Parent Session | 父工作階段 |
+| Inline Change Rendering | 行內變更渲染 |
+| Update Experience | 更新體驗 |
+| Theming | 主題 |
+| UX Polish | UX 精進 |
+| Command Palette | 命令面板 |
 | Copilot CLI | Copilot CLI |
+| Terminal Profile | 終端機設定檔 |
+| Terminal Profile Picker | 終端機設定檔選擇器 |
+| Default Shell | 預設 Shell |
+| Agent CLIs | Agent CLI |
 | Claude Code | Claude Code |
 | Gemini CLI | Gemini CLI |
-| Shell Types | Shell 類型 |
-| Meaningful Branch Names | 有意義的分支名稱 |
-| Created by VS Code or Externally | 由 VS Code 或外部建立 |
-| Self-updating | 自動更新 |
-| Agents App | Agents 應用程式 |
-| Auxiliary Windows | 輔助視窗 |
-| Floating Windows | 浮動視窗 |
-| Main Window | 主視窗 |
-| Dependency Hover | 相依性懸停（資訊） |
-| Installed Version | 已安裝版本 |
-| Latest Published Version | 最新發佈版本 |
-| package.json | package.json |
+| Codex | Codex |
+| Shell Type | Shell 類型 |
+| OSC Title Sequence | OSC 標題序列 |
+| terminal.integrated.tabs.allowAgentCliTitle | terminal.integrated.tabs.allowAgentCliTitle 設定 |
+| TypeScript 6.0.3 | TypeScript 6.0.3 |
+| Recovery Release | 修復版本 |
+| Import Bugs and Regressions | 匯入錯誤與回歸 |
+| Deprecated | 已棄用 |
 
 ---
 
-*資料來源：VS Code 1.117 發行說明 (https://code.visualstudio.com/updates/v1_117)*
+*資料來源：[Visual Studio Code 1.117 發行說明](https://code.visualstudio.com/updates/v1_117)*

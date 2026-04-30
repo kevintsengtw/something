@@ -6,179 +6,226 @@
 
 ---
 
-歡迎使用 Visual Studio Code 1.113 版本。本次發行包含了 Agent 與開發人員體驗方面的多項改善。
+歡迎使用 Visual Studio Code 1.113 版本。本次發行包含跨 **Agent 與開發者體驗**的多項改善。
 
-以下是本次發行的主要亮點：
+- **[Chat Customizations](#chat-customizations-編輯器preview)**：從單一的統一介面管理所有聊天相關自訂項目。
+- **[可配置的思考力度](#模型選擇器中可配置的思考力度)**：直接從 UI 控制模型的推理等級。
+- **[巢狀子代理](#巢狀子代理)**：允許子代理呼叫其他子代理，實現複雜的多步驟工作流程。
+- **[CLI Agent 能力](#agent-體驗)**：在 CLI Agent 中使用 MCP 伺服器、分叉工作階段，以及檢視偵錯日誌。
+- **[圖片預覽](#聊天附件的圖片預覽)**：使用全功能的圖片檢視器預覽聊天中的圖片。
+- **[預設主題更新](#全新預設主題)**：享受更新後的預設淺色和深色主題帶來的全新外觀。
 
-- **聊天自訂項目**：從單一的統一介面管理所有聊天相關的自訂項目
-- **可設定的思考力度**：直接從 UI 控制模型的推理層級
-- **巢狀子代理**：允許子代理呼叫其他子代理，以處理複雜的多步驟工作流程
-- **CLI Agent 功能**：在 CLI Agent 中使用 MCP 伺服器、分叉工作階段及檢視除錯日誌
-- **圖片預覽**：使用全功能圖片檢視器預覽聊天中的圖片
-- **預設主題更新**：透過更新的預設亮色和暗色主題，享受煥然一新的外觀
+Happy Coding!
 
 ---
 
-## GitHub Copilot
+VS Code 正在逐步向所有使用者推出。在 VS Code 中使用 **Check for Updates** 可立即取得最新版本。
 
-### 聊天自訂項目（Chat Customizations）
+若要盡快試用新功能，請[**下載每夜建置的 Insiders 版本**](https://code.visualstudio.com/insiders)，其中包含最新的更新。
 
-聊天自訂項目編輯器提供了一個集中化的 UI，讓您在一個地方建立和管理所有聊天自訂項目。
+---
 
-若要開啟編輯器，請選取聊天檢視中的「設定聊天」（齒輪圖示），或從命令面板（⇧⌘P，Windows/Linux 為 Ctrl+Shift+P）執行「Chat: Open Chat Customizations」。
+## Agent 體驗
 
-編輯器將自訂類型組織成獨立的分頁，例如自訂指令（Custom Instructions）、提示檔案（Prompt Files）、自訂 Agent（Custom Agents）和 Agent 技能（Agent Skills）。它還提供了一個內嵌的程式碼編輯器，支援語法醒目提示和驗證。
+跨本機、CLI 和 Claude Agent 使用相同的工具和工作流程，以更少的摩擦組合多步驟自動化。
 
-您可以從頭建立新的自訂項目，或使用 AI 根據您的專案產生初始內容。若要新增 MCP 伺服器和 Agent 外掛程式，可以直接從編輯器瀏覽對應的市集。
+### Copilot CLI 和 Claude Agent 的 MCP 支援
 
-### 可設定的思考力度（Configurable Thinking Effort）
+先前，您在 VS Code 中設定的 MCP 伺服器僅供在編輯器中執行的本機 Agent 使用。本次發行新增了 Copilot CLI 和 Claude Agent 對 MCP 伺服器的支援。
 
-支援推理的模型（例如 Claude Sonnet 4.6 和 GPT-5.4）現在會在模型選擇器中直接顯示一個「Thinking Effort」（思考力度）子選單，讓您可以控制模型對每個請求施加多少推理，而無需導覽至 VS Code 設定。
+您在 VS Code 中註冊的 MCP 伺服器會橋接至 Copilot CLI 和 Claude Agent。這適用於使用者定義的伺服器，以及透過工作區中的 `mcp.json` 檔案定義的伺服器。
 
-在選擇器中選擇一個推理模型，然後選取箭頭以顯示可用的力度等級。VS Code 會記住每個模型的所選力度等級，並跨對話保留。
+更多資訊請參閱[在 VS Code 中使用 MCP 伺服器](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)。
+
+### Copilot CLI 和 Claude Agent 的分叉工作階段
+
+**設定**：`github.copilot.chat.cli.forkSessions.enabled`
+
+分叉工作階段讓您可以在對話歷史的任何時間點建立現有工作階段的副本。這在您想探索不同的思路或嘗試不同的提示，而不丟失原始工作階段上下文時非常有用。
+
+在本次發行中，您現在也可以在 Copilot CLI（實驗性）和 Claude Agent 中分叉工作階段。若要為 Copilot CLI 啟用分叉，請啟用 `github.copilot.chat.cli.forkSessions.enabled` 設定。
+
+更多資訊請參閱文件中的[分叉聊天工作階段](https://code.visualstudio.com/docs/copilot/chat/chat-sessions#_fork-a-chat-session)。
+
+### Copilot CLI 和 Claude CLI 工作階段的 Agent 偵錯日誌（Preview）
+
+Agent Debug Log 面板是了解您送出提示後發生什麼事的主要工具。它顯示聊天工作階段期間 Agent 互動的時序事件紀錄。您現在可以將 Agent Debug Log 面板用於 Copilot CLI 和 Claude Agent 工作階段。對本機 Agent 工作階段的支援已在先前版本中提供。
+
+更多資訊請參閱文件中的 [Agent Debug Log 面板](https://code.visualstudio.com/docs/copilot/chat/chat-debug-view#_agent-debug-log-panel)。
+
+### Claude 工作階段列表改用 SDK API
+
+VS Code 現在採用 Claude Agent SDK 的官方 API 來列出工作階段及其訊息。先前，我們依賴解析磁碟上的 Claude JSONL 檔案，若 Claude 變更其結構，可能會有不同步的風險。如果您之前遇到 Claude Agent 未顯示所有工作階段或訊息的問題，現在應該已經解決。
+
+### 巢狀子代理
+
+**設定**：`chat.subagents.allowInvocationsFromSubagents`
+
+子代理現在可以呼叫其他子代理，支援更複雜的多步驟工作流程。先前，子代理被限制不能呼叫其他子代理，以防止無限遞迴。透過新的 `chat.subagents.allowInvocationsFromSubagents` 設定，您可以在需要時啟用此能力。
+
+更多資訊請參閱文件中的[使用子代理](https://code.visualstudio.com/docs/copilot/agents/subagents)。
+
+### 管理外掛程式市集
+
+我們新增了一個命令 **Chat: Manage Plugin Marketplaces**，可列出所有已設定的外掛程式市集。對於每個市集，您可以瀏覽外掛程式、開啟其本機目錄，以及移除它們。
+
+更多資訊請參閱文件中的[使用 Agent 外掛程式](https://code.visualstudio.com/docs/copilot/customization/agent-plugins)。
+
+### 外掛程式安裝的 URL 處理程式
+
+您可以透過 URL 處理程式觸發 VS Code 外掛程式安裝。若要安裝市集，可以觸發以下格式的連結：
+
+```
+vscode://chat-plugin/add-marketplace?ref=<source>
+```
+
+其中「source」是 GitHub 的 `repo/owner` 或 Base64 編碼的 Git URI。若要安裝擴充功能，可以使用以下格式：
+
+```
+vscode://chat-plugin/install?source=<source>
+```
+
+若要針對 VS Code Insiders，請將 URL 中的 `vscode` 替換為 `vscode-insiders`。
+
+---
+
+## 聊天體驗
+
+根據您的專案從單一編輯器調整 AI，控制模型在回應前的推理程度，以及在不離開聊天的情況下審查視覺上下文。
+
+### Chat Customizations 編輯器（Preview）
+
+Chat Customizations 編輯器提供一個集中式 UI，可在同一個地方建立和管理您所有的聊天自訂項目。編輯器將自訂類型組織到不同的分頁中，例如自訂指令、提示檔案、自訂 Agent 和 Agent 技能。它也提供內嵌的程式碼編輯器，附帶語法醒目顯示和驗證。
+
+您可以從頭建立新的自訂項目，或使用 AI 根據您的專案生成初始內容。若要新增 MCP 伺服器和 Agent 外掛程式，可直接從編輯器瀏覽對應的市集。
+
+若要開啟編輯器，請在 Chat 檢視中選取 **Configure Chat（齒輪圖示）**，或從命令面板（⇧⌘P（Windows、Linux 為 Ctrl+Shift+P））執行 **Chat: Open Chat Customizations**。
+
+更多資訊請參閱文件中的 [Chat Customizations 編輯器](https://code.visualstudio.com/docs/copilot/customization/overview#_chat-customizations-editor)。
+
+### 模型選擇器中可配置的思考力度
+
+支援推理的模型，例如 Claude Sonnet 4.6 和 GPT-5.4，現在在模型選擇器中直接顯示 **Thinking Effort** 子選單。您可以用它來控制模型對每次請求投入多少推理，而無需前往 VS Code 設定。VS Code 會為每個模型跨對話保留所選的力度等級。
+
+在選擇器中選取推理模型，然後選取箭頭以顯示可用的力度等級。可用的力度等級可能因模型而異。非推理模型不會顯示子選單。
 
 模型選擇器標籤現在也會顯示所選的力度等級，例如「GPT-5.3-Codex · Medium」，讓您更容易看到每個模型目前啟用的力度等級。
 
-非推理模型不會顯示此子選單。
+更多資訊請參閱文件中的[思考力度與推理](https://code.visualstudio.com/docs/copilot/concepts/language-models#_thinking-and-reasoning)。
 
-> **已棄用：** `github.copilot.chat.anthropic.thinking.effort` 和 `github.copilot.chat.responsesApiReasoningEffort` 設定已被棄用。使用者現在應透過語言模型選擇器直接設定思考力度。
+> **注意：** `github.copilot.chat.anthropic.thinking.effort` 和 `github.copilot.chat.responsesApiReasoningEffort` 設定已被棄用。推理力度現在直接透過模型選擇器配置。
 
-### 巢狀子代理（Nested Subagents）
+### 聊天附件的圖片預覽
 
-子代理現在可以呼叫其他子代理，為複雜的多步驟工作流程啟用更精密的協調模式。
+**設定**：`imageCarousel.chat.enabled`、`imageCarousel.explorerContextMenu.enabled`
 
-先前，子代理被限制不能呼叫其他子代理，以防止無限遞迴。透過新設定 `chat.subagents.allowInvocationsFromSubagents`，您可以在需要時啟用此功能。
+當您在聊天中使用圖片時，無論是附加螢幕截圖到請求中，還是 Agent 透過工具呼叫產生圖片，您現在都可以選取任何圖片附件，在全功能的圖片檢視器中開啟它。
 
-#### 協調者模式（Orchestration Patterns）
+檢視器以模態覆蓋層的方式開啟，支援：
 
-子代理支援協調者模式，其中一個協調者 Agent 將工作委派給專門的工作者 Agent。這種方法幫助您建構精密的工作流程，同時讓每個 Agent 專注於其最擅長的工作。
+- **導航**：使用箭頭按鈕、鍵盤方向鍵或底部的縮圖列瀏覽目前聊天工作階段的所有圖片。
+- **分段**：圖片依對話輪次分組，讓您可以看到哪些圖片來自特定的請求或回應。
+- **縮放與平移**：按一下可放大，使用 Option+按一下（Mac）或 Ctrl+按一下（Windows/Linux）可縮小，或捲動/捏合可連續縮放。在高縮放倍率下，捲動可在圖片中平移。
 
-例如，一個協調者 Agent 管理整體任務並將子任務委派給專門的子代理。每個工作者 Agent 可以擁有量身定制的工具組合。例如，規劃和審查 Agent 只需要唯讀存取權限，而實作者需要編輯功能。
+圖片檢視器現在也可從檔案總管檢視的右鍵選單中用於圖片檔案。當您選取 **Open in Images Preview** 時，檢視器會開啟並顯示目前資料夾中的所有圖片。
 
-#### 控制子代理呼叫行為
-
-您可以透過 Agent 屬性控制子代理的呼叫行為。`disable-model-invocation` 屬性可防止 Agent 被其他 Agent 作為子代理呼叫（預設為 false），應在 Agent 僅應由使用者明確觸發時設為 true。
-
-### CLI Agent 功能增強（CLI Agent Capabilities）
-
-CLI Agent 功能已增強，可在 CLI Agent 中使用 MCP 伺服器、分叉工作階段和檢視除錯日誌。
-
-#### MCP 伺服器支援
-
-本次發行為 Copilot CLI（實驗性）和 Claude Agent 新增了 MCP 伺服器支援。使用 CLI Agent 的開發人員將發現 MCP 伺服器直接橋接，因此不需要在編輯器與命令列之間重新設定工具。
-
-#### 分叉工作階段（Fork Sessions）
-
-從 VS Code 1.113 開始，您現在可以在 Copilot CLI（實驗性）和 Claude Agent 中分叉工作階段。分叉工作階段可讓您在對話歷史的任何時間點建立現有工作階段的副本，當您想要探索不同的思路或嘗試不同的提示，而不失去原始工作階段的上下文時，這非常有用。
-
-#### 除錯日誌（Debug Logs）
-
-Agent 除錯日誌面板是理解您發送提示後發生什麼事的主要工具，顯示聊天工作階段中 Agent 互動的時間順序事件日誌。CLI Agent 現在也可以存取此功能。
-
-### 圖片預覽（Images Preview）
-
-當您在聊天中使用圖片時，無論是將截圖附加到請求中，還是 Agent 透過工具呼叫產生圖片，您現在都可以選取任何圖片附件，在全功能圖片檢視器體驗中開啟它。
-
-#### 導覽（Navigation）
-
-使用箭頭按鈕、鍵盤方向鍵或底部的縮圖條，瀏覽目前聊天工作階段中的所有圖片。
-
-#### 分組（Sections）
-
-圖片依對話回合分組，讓您可以看到哪些圖片來自特定的請求或回應。
-
-#### 縮放與平移（Zoom & Pan）
-
-點擊以放大，使用 Option+Click（Mac）或 Ctrl+Click（Windows/Linux）縮小，或滾動/捏合以連續縮放。
-
-#### 檔案總管檢視存取
-
-圖片檢視器現在也可從檔案總管檢視的右鍵選單中存取圖片檔案。當您選取「在圖片預覽中開啟」（Open in Images Preview）時，檢視器會開啟並顯示目前資料夾中的所有圖片。
-
-#### 設定
-
-這兩個功能預設都已啟用。若要獨立設定它們，請使用 `imageCarousel.chat.enabled` 和 `imageCarousel.explorerContextMenu.enabled`。
-
-### 釘選聊天工作階段（Pinned Chat Sessions）
-
-聊天工作階段現在可以釘選，讓重要的對話保持可存取，無需捲動歷史記錄。釘選功能讓您可以快速回到經常參考的對話，而不會在持續累積的工作階段列表中遺失它們。
-
-### 可點擊的斜線命令（Clickable Slash Commands）
-
-斜線命令（例如 `/fix` 或 `/explain`）現在可以點擊，讓您可以在發送前檢視或修改其參數。這提供了更好的控制，讓您在提交請求之前確認命令的意圖和範圍。
-
-### run_in_terminal 工具改善
-
-`run_in_terminal` 工具現在在命令逾時時，會明確標示輸出為已截斷（truncated），而不是靜默地返回部分結果。這讓使用者和 Agent 都能清楚知道命令輸出是不完整的，從而做出適當的後續處理。
+這兩項功能預設為啟用。若要獨立配置它們，請使用 `imageCarousel.chat.enabled` 和 `imageCarousel.explorerContextMenu.enabled`。
 
 ---
 
-## 整合式瀏覽器（Integrated Browser）
+## 編輯器體驗
 
-### 暫時信任自簽憑證
+在整合式瀏覽器中更有信心地開發和測試 Web 應用程式，並享受編輯器煥然一新的預設外觀。
 
-您現在可以選擇暫時信任無法驗證的憑證，以解除在使用自簽憑證的情境中開發時的阻礙。這對於使用自簽憑證的本地開發伺服器（localhost HTTPS）特別有用，讓您無需額外設定即可繼續開發工作。
+### 在整合式瀏覽器中使用自簽憑證
 
-### 瀏覽器分頁管理
+當您開發依賴安全 HTTPS 連線的 Web 應用程式時，在測試期間通常需要使用自簽憑證。
 
-瀏覽器分頁的右鍵選單現在新增了關閉同一群組中所有瀏覽器分頁的選項，類似於現有的「全部關閉」項目。所有群組的瀏覽器分頁也可透過命令面板關閉。
+在正常情況下，此類憑證不應被信任。先前，任何出示不受信任憑證的網站在整合式瀏覽器中都會直接載入失敗，沒有任何略過的選項。
 
-此外，新增了一個「快速開啟」（Quick Open）命令，可篩選已開啟的分頁，以便快速存取或關閉群組中的所有分頁。
+現在，類似於大多數瀏覽器，您可以選擇暫時信任無法驗證的憑證，以解除這些場景中的開發阻礙。
 
----
+當您選擇繼續時，使用該憑證對目前主機的連線將在一週內被允許。URL 列會顯示連線不安全，並提供隨時撤銷信任的選項。
 
-## 工作區（Workbench）
+更多資訊請參閱文件中的[整合式瀏覽器](https://code.visualstudio.com/docs/debugtest/integrated-browser)。
 
-### 預設主題更新（Default Themes Refresh）
+### 改善的瀏覽器分頁管理
 
-VS Code 現在隨附全新的預設主題：「VS Code Light」和「VS Code Dark」。這些主題旨在提供煥然一新的現代外觀，同時維持先前預設「Modern」主題的熟悉度和可用性。
+**設定**：`workbench.browser.showInTitleBar`
 
-OS 主題同步將為新使用者預設使用新主題，讓 VS Code 自動匹配您作業系統的亮色/暗色模式與新主題。
+管理開啟的分頁本來就可能很困難。隨著我們鼓勵更多使用整合式瀏覽器分頁，我們也新增了更多控制項來輕鬆管理它們。
 
-對於既有使用者，先前的主題偏好設定將繼續生效。您可以隨時透過設定手動切換至新的預設主題。
+- **Quick Open Browser Tab**
 
----
+  此命令會開啟一個 Quick Pick，顯示所有開啟的瀏覽器分頁，並允許快速篩選、聚焦和關閉它們。
 
-## 終端機（Terminal）
+  此命令也可以在瀏覽器目前獲得焦點時使用 ⇧⌘A（Windows、Linux 為 Ctrl+Shift+A）鍵盤快捷鍵觸發，或透過 VS Code 標題列中的新快捷按鈕觸發（在瀏覽器分頁開啟時可見）。
 
-### run_in_terminal 輸出截斷標示
+  此按鈕的可見性可透過 `workbench.browser.showInTitleBar` 設定配置。
 
-`run_in_terminal` 工具現在在命令逾時時，會明確標示輸出為已截斷，而不是靜默地返回部分結果。此改善確保使用者和 Agent 都能了解輸出的完整性狀態，從而避免基於不完整資訊做出錯誤判斷。
+- **Close All Browser Tabs**
 
----
+  瀏覽器分頁右鍵選單現在有一個選項可關閉同一群組中的所有瀏覽器分頁，類似於既有的「Close All」項目。也可透過命令面板關閉所有群組中的瀏覽器分頁。
 
-## 無障礙功能（Accessibility）
+### 全新預設主題
 
-### 改善隱含內容的螢幕閱讀器標籤
-
-本次發行改善了隱含內容（implicit content）的螢幕閱讀器標籤。當 UI 元素包含隱含的語義或狀態時，螢幕閱讀器現在能更準確地傳達這些資訊給使用者，提升視障使用者的操作體驗。
+VS Code 現在附帶全新的預設主題：「VS Code Light」和「VS Code Dark」。這些主題旨在提供清新、現代的外觀，同時維持先前預設「Modern」主題的熟悉度和可用性。此外，作業系統主題同步對新使用者將預設使用新主題，讓 VS Code 自動以新主題匹配作業系統的淺色/深色模式。
 
 ---
 
-## 重要修正（Notable Fixes）
+## 已棄用的功能與設定
 
-- **WSL「在檔案總管中顯示」修正**：修正了連線至 WSL（Windows Subsystem for Linux）時，「在檔案總管中顯示」（Reveal in File Explorer）功能無法正常運作的問題。使用者現在可以在 WSL 遠端工作階段中正確地在 Windows 檔案總管中顯示檔案。
+### 本次發行的新棄用項目
 
-- **圖片輪播縮放支援**：圖片輪播檢視器現在支援縮放功能，讓使用者可以更詳細地檢視圖片內容。
+無
+
+### 即將棄用的項目
+
+- **Edit Mode** 自 VS Code 1.110 版本起正式棄用。使用者可透過 VS Code 設定 `chat.editMode.hidden` 暫時重新啟用 Edit Mode。此設定將支援至 1.125 版本。從 1.125 版本開始，Edit Mode 將被完全移除，且無法再透過設定啟用。
 
 ---
 
-## 新設定與已棄用設定摘要
+## 感謝
 
-### 新設定
+### Issue 追蹤
 
-| 設定 | 說明 |
-|------|------|
-| `chat.subagents.allowInvocationsFromSubagents` | 啟用子代理呼叫其他子代理的功能 |
-| `imageCarousel.chat.enabled` | 啟用或停用聊天中的圖片預覽功能 |
-| `imageCarousel.explorerContextMenu.enabled` | 啟用或停用檔案總管右鍵選單中的圖片預覽選項 |
+Issue 追蹤貢獻者：
 
-### 已棄用設定
+- [@gjsjohnmurray (John Murray)](https://github.com/gjsjohnmurray)
+- [@RedCMD (RedCMD)](https://github.com/RedCMD)
+- [@IllusionMH (Andrii Dieiev)](https://github.com/IllusionMH)
+- [@albertosantini (Alberto Santini)](https://github.com/albertosantini)
 
-| 設定 | 替代方案 |
-|------|---------|
-| `github.copilot.chat.anthropic.thinking.effort` | 改用模型選擇器中的 Thinking Effort 子選單 |
-| `github.copilot.chat.responsesApiReasoningEffort` | 改用模型選擇器中的 Thinking Effort 子選單 |
+`vscode` 程式碼貢獻者：
+
+- [@jcansdale (Jamie Cansdale)](https://github.com/jcansdale)：對多行執行的終端機文字使用括號貼上 [PR #302526](https://github.com/microsoft/vscode/pull/302526)
+- [@jeevaratnamputla](https://github.com/jeevaratnamputla)：將 child_process.exec 替換為 execFile 以防止潛在的命令注入 [PR #291825](https://github.com/microsoft/vscode/pull/291825)
+- [@kbhujbal (Kunal Bhujbal)](https://github.com/kbhujbal)：修正程式碼品質問題：錯誤記錄和 JSDoc 拼字錯誤 [PR #297893](https://github.com/microsoft/vscode/pull/297893)
+- [@sathvikc (Sathvik C)](https://github.com/sathvikc)：修正：防止可重入的 renderGettingStartedTipIfNeeded 產生重複的提示節點 [PR #302317](https://github.com/microsoft/vscode/pull/302317)
+- [@ShehabSherif0 (Shehab Sherif)](https://github.com/ShehabSherif0)：修正 sanitizeId 正則表達式中缺少的全域旗標 [PR #303603](https://github.com/microsoft/vscode/pull/303603)
+- [@xingsy97 (xingsy97)](https://github.com/xingsy97)：Git — 最佳化 worktree 忽略路徑的計算 [PR #303955](https://github.com/microsoft/vscode/pull/303955)
+
+`vscode-copilot-chat` 程式碼貢獻者：
+
+- [@24anisha (Anisha Agarwal)](https://github.com/24anisha)
+  - 搜尋子代理 — 解析相對與絕對路徑 [PR #4429](https://github.com/microsoft/vscode-copilot-chat/pull/4429)
+  - 系統提示更新以處理搜尋子代理 [PR #4500](https://github.com/microsoft/vscode-copilot-chat/pull/4500)
+- [@etvorun (ET)](https://github.com/etvorun)：修正：NES debounce 和語言上下文擷取未尊重取消 Token [PR #4384](https://github.com/microsoft/vscode-copilot-chat/pull/4384)
+
+`vscode-python-environments` 程式碼貢獻者：
+
+- [@00zayn](https://github.com/00zayn)：修正 ${workspaceFolder} 範圍的全域 defaultInterpreterPath 產生的虛假未解析直譯器警告 [PR #1334](https://github.com/microsoft/vscode-python-environments/pull/1334)
+- [@StellaHuang95 (Stella Huang)](https://github.com/StellaHuang95)：為管理器註冊失敗新增遙測 [PR #1365](https://github.com/microsoft/vscode-python-environments/pull/1365)
+
+`vscode-windows-process-tree` 程式碼貢獻者：
+
+- [@ZA139](https://github.com/ZA139)：功能：新增 getAllProcesses API 以擷取所有系統程序 [PR #84](https://github.com/microsoft/vscode-windows-process-tree/pull/84)
+
+---
+
+我們非常感謝大家在新功能準備就緒時便立即試用，請經常回來查看並了解最新動態。
+
+> 如果您想閱讀 VS Code 先前版本的發行說明，請前往 [code.visualstudio.com](https://code.visualstudio.com/) 上的 [Updates](https://code.visualstudio.com/updates)。
 
 ---
 
@@ -186,51 +233,56 @@ OS 主題同步將為新使用者預設使用新主題，讓 VS Code 自動匹�
 
 | 英文 | 繁體中文 |
 |------|---------|
-| Chat Customizations | 聊天自訂項目 |
-| Chat Customizations Editor | 聊天自訂項目編輯器 |
+| Agent Experience | Agent 體驗 |
+| MCP Servers | MCP 伺服器 |
+| Copilot CLI | Copilot CLI |
+| Claude Agent | Claude Agent |
+| Bridged | 橋接 |
+| mcp.json | mcp.json 檔案 |
+| Forking Sessions | 分叉工作階段 |
+| Agent Debug Log | Agent 偵錯日誌 |
+| Chronological Event Log | 時序事件紀錄 |
+| Claude Agent SDK | Claude Agent SDK |
+| JSONL Files | JSONL 檔案 |
+| Nested Subagents | 巢狀子代理 |
+| Infinite Recursion | 無限遞迴 |
+| Plugin Marketplaces | 外掛程式市集 |
+| URL Handlers | URL 處理程式 |
+| Chat Customizations Editor | Chat Customizations 編輯器 |
 | Custom Instructions | 自訂指令 |
 | Prompt Files | 提示檔案 |
 | Custom Agents | 自訂 Agent |
 | Agent Skills | Agent 技能 |
-| Configurable Thinking Effort | 可設定的思考力度 |
-| Reasoning | 推理 |
-| Model Picker | 模型選擇器 |
-| Effort Level | 力度等級 |
-| Nested Subagents | 巢狀子代理 |
-| Orchestration Patterns | 協調者模式 |
-| Coordinator Agent | 協調者 Agent |
-| Worker Agent | 工作者 Agent |
-| Disable Model Invocation | 停用模型呼叫 |
-| CLI Agent Capabilities | CLI Agent 功能 |
-| Fork Sessions | 分叉工作階段 |
-| Debug Logs | 除錯日誌 |
-| MCP Servers | MCP 伺服器 |
-| Images Preview | 圖片預覽 |
-| Image Carousel | 圖片輪播 |
-| Zoom & Pan | 縮放與平移 |
-| Thumbnail Strip | 縮圖條 |
-| Pinned Chat Sessions | 釘選聊天工作階段 |
-| Clickable Slash Commands | 可點擊的斜線命令 |
-| run_in_terminal | run_in_terminal 工具 |
-| Truncated Output | 已截斷的輸出 |
-| Integrated Browser | 整合式瀏覽器 |
-| Self-Signed Certificate | 自簽憑證 |
-| Temporary Trust | 暫時信任 |
-| Quick Open | 快速開啟 |
-| Default Themes Refresh | 預設主題更新 |
-| VS Code Light | VS Code Light（亮色主題） |
-| VS Code Dark | VS Code Dark（暗色主題） |
-| OS Theme Syncing | 作業系統主題同步 |
-| Screen Reader Labels | 螢幕閱讀器標籤 |
-| Implicit Content | 隱含內容 |
-| Reveal in File Explorer | 在檔案總管中顯示 |
-| WSL | Windows Subsystem for Linux |
-| Command Palette | 命令面板 |
-| Syntax Highlighting | 語法醒目提示 |
+| Syntax Highlighting | 語法醒目顯示 |
 | Validation | 驗證 |
-| Marketplace | 市集 |
+| Command Palette | 命令面板 |
+| Thinking Effort | 思考力度 |
+| Model Picker | 模型選擇器 |
+| Reasoning | 推理 |
+| Effort Level | 力度等級 |
+| Image Carousel | 影像輪播 |
+| Modal Overlay | 模態覆蓋層 |
+| Zoom & Pan | 縮放與平移 |
+| Thumbnail Strip | 縮圖列 |
+| Conversation Turn | 對話輪次 |
+| Explorer Context Menu | 檔案總管右鍵選單 |
+| Self-signed Certificate | 自簽憑證 |
+| Integrated Browser | 整合式瀏覽器 |
+| Untrusted Certificate | 不受信任的憑證 |
+| Revoke Trust | 撤銷信任 |
+| Quick Open Browser Tab | Quick Open Browser Tab 命令 |
+| Quick Pick | Quick Pick |
+| Close All Browser Tabs | 關閉所有瀏覽器分頁 |
+| Title Bar | 標題列 |
+| Default Themes | 預設主題 |
+| VS Code Light / VS Code Dark | VS Code Light / VS Code Dark 主題 |
+| OS Theme Syncing | 作業系統主題同步 |
+| Edit Mode | 編輯模式（Edit Mode） |
 | Deprecated | 已棄用 |
+| Bracketed Paste | 括號貼上 |
+| Command Injection | 命令注入 |
+| Worktree | Worktree（Git 工作樹） |
 
 ---
 
-*資料來源：VS Code 1.113 發行說明 (https://code.visualstudio.com/updates/v1_113)*
+*資料來源：[Visual Studio Code 1.113 發行說明](https://code.visualstudio.com/updates/v1_113)*
