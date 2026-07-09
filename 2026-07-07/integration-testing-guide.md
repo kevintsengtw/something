@@ -1,8 +1,7 @@
 # 整合測試技術轉移指南（WebApplicationFactory + Testcontainers + Respawner + xUnit）
 
-> 這份文件給要接手 / 採用這套整合測試的開發人員。重點在**觀念、流程、與「為什麼這樣設計」**，
-> 而不是逐行程式碼。完整程式碼請看
-> [multi-database-sqlserver-integration-test.md](multi-database-sqlserver-integration-test.md)。
+> 這份文件給要接手 / 採用這套整合測試的開發人員，內容**自足**：包含觀念、流程、「為什麼這樣設計」，
+> 以及**所有相關類別的完整程式碼**（見第 12 節），不需參照其他文件即可照著建置。
 
 ---
 
@@ -19,6 +18,7 @@
 - [9. Respawner 如何做到測試間隔離](#9-respawner-如何做到測試間隔離)
 - [10. 怎麼寫一個新的整合測試](#10-怎麼寫一個新的整合測試onboarding-步驟)
 - [11. 常見問題與注意事項](#11-常見問題與注意事項)
+- [12. 完整程式碼](#12-完整程式碼)
 - [附錄：一眼看懂的關係圖](#附錄一眼看懂的關係圖)
 
 ---
@@ -478,6 +478,930 @@ public class OrdersControllerTests : IntegrationTestBase
 
 ---
 
+## 12. 完整程式碼
+
+以下為本套整合測試所有相關類別的完整程式碼（本篇自足，照抄即可建置）。
+
+### 12-1. `Infrastructure/IntegrationTestCollection.cs`
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 整合測試集合定義 - 所有整合測試共享同一組容器（由 IntegrationTestFixture 管理）
+/// </summary>
+[CollectionDefinition("Integration Tests")]
+public class IntegrationTestCollection : ICollectionFixture<IntegrationTestFixture>
+{
+    public const string Name = "Integration Tests";
+}
+```
+
+### 12-2. `Infrastructure/IntegrationTestFixture.cs`（組合根）
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 整合測試的組合根 fixture（Collection Fixture）。
+/// 以 DatabaseManagerRegistry 管理多台資料庫、以 RedisFixture / KafkaFixture 管理其他容器；
+/// 於 InitializeAsync 中啟動各容器後建立 TestWebApplicationFactory 並注入。整個測試集合共用同一組容器。
+/// </summary>
+public sealed class IntegrationTestFixture : IAsyncLifetime
+{
+    public DatabaseManagerRegistry Databases { get; } = new(DatabaseNames.All);
+    public RedisFixture Redis { get; } = new();
+    public KafkaFixture Kafka { get; } = new();
+    public TestWebApplicationFactory Factory { get; private set; } = null!;
+
+    public async Task InitializeAsync()
+    {
+        await Databases.InitializeAllAsync();
+        await Redis.InitializeAsync();
+        await Kafka.InitializeAsync();
+
+        // 容器啟動後才建立 factory，並注入資料庫登錄器、Redis 與 Kafka
+        Factory = new TestWebApplicationFactory(Databases, Redis, Kafka);
+
+        // 讓測試端設定的 AsyncLocal（例如 TimeProviderAccessor 的時間）能流進 TestServer 的請求管線，
+        // 否則被測 WebApi 內部讀 TimeProviderAccessor.Now 會拿到系統時間而非測試設定的時間。
+        Factory.Server.PreserveExecutionContext = true;
+    }
+
+    public async Task DisposeAsync()
+    {
+        await Factory.DisposeAsync();
+        await Kafka.DisposeAsync();
+        await Redis.DisposeAsync();
+        await Databases.DisposeAllAsync();
+    }
+
+    /// <summary>重置整合測試的狀態（清空各資料庫資料），供每個測試之間隔離使用。</summary>
+    public Task ResetStateAsync() => Databases.ResetAllAsync();
+}
+```
+
+### 12-3. `Infrastructure/TestWebApplicationFactory.cs`
+
+```csharp
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
+using Serilog;
+using Serilog.Events;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 整合測試的 WebApplicationFactory。
+/// 服務容器由組合根 IntegrationTestFixture 建立後注入本類別，本類別不建立任何容器，
+/// 只負責把注入 fixture 的連線資訊套進被測 WebApi 設定，並將 SUT 的 ILogger 輸出導向 OutputSink。
+/// </summary>
+public class TestWebApplicationFactory : WebApplicationFactory<Program>
+{
+    private readonly DatabaseManagerRegistry _databases;
+    private readonly RedisFixture _redis;
+    private readonly KafkaFixture _kafka;
+    private readonly FakeTimeProvider _timeProvider;
+
+    /// <summary>累積被測 WebApi 內部的 ILogger 輸出，供測試在每次呼叫後取出並印出。</summary>
+    public TestOutputSink OutputSink { get; } = new();
+
+    /// <summary>被測 WebApi 使用的假時間提供者（作用在「DI 注入」的 TimeProvider）。</summary>
+    public FakeTimeProvider TimeProvider => _timeProvider;
+
+    public TestWebApplicationFactory(DatabaseManagerRegistry databases, RedisFixture redis, KafkaFixture kafka)
+    {
+        _databases = databases;
+        _redis = redis;
+        _kafka = kafka;
+        _timeProvider = new FakeTimeProvider(new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureAppConfiguration(config =>
+        {
+            config.Sources.Clear();
+
+            var overrides = new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:Redis"] = _redis.ConnectionString,
+                ["Kafka:BootstrapServers"] = _kafka.BootstrapServers
+            };
+
+            // 逐一把登錄器中的資料庫連線字串以「ConnectionStrings:{DatabaseName}」注入，不寫死名稱
+            foreach (var (databaseName, manager) in _databases.Managers)
+            {
+                overrides[$"ConnectionStrings:{databaseName}"] = manager.ConnectionString;
+            }
+
+            config.AddInMemoryCollection(overrides);
+        });
+
+        builder.ConfigureServices(services =>
+        {
+            // 替換 DI 的 TimeProvider 為 FakeTimeProvider（供「注入版」時間控制）
+            services.Remove(services.Single(d => d.ServiceType == typeof(TimeProvider)));
+            services.AddSingleton<TimeProvider>(_timeProvider);
+
+            // SUT 用 Serilog，改用 Serilog sink 攔截，把 SUT log 導入 OutputSink
+            services.AddSerilog(configuration => configuration
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .MinimumLevel.Override("System", LogEventLevel.Warning)
+                .WriteTo.Sink(new TestOutputSerilogSink(OutputSink)));
+        });
+
+        builder.UseEnvironment("Testing");
+    }
+}
+```
+
+### 12-4. `Infrastructure/IntegrationTestBase.cs`
+
+```csharp
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using Day23.Domain.Utilities;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
+using Xunit.Abstractions;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 整合測試基底類別 - 使用 Collection Fixture 共享容器
+/// </summary>
+[Collection("Integration Tests")]
+public abstract class IntegrationTestBase : IAsyncLifetime
+{
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    private const string Divider = "────────────────────────────────────────────────────────";
+
+    protected readonly IntegrationTestFixture Fixture;
+    protected readonly TestWebApplicationFactory Factory;
+    protected readonly HttpClient HttpClient;
+    protected readonly DatabaseManager DatabaseManager;
+    protected readonly DatabaseManager AuditDatabase;
+    protected readonly KafkaFixture Kafka;
+    protected readonly IFlurlClient FlurlClient;
+    protected readonly ILogger Logger;
+
+    protected IntegrationTestBase(IntegrationTestFixture fixture, ITestOutputHelper testOutputHelper)
+    {
+        Fixture = fixture;
+        Factory = fixture.Factory;
+
+        // 掛上 RequestCaptureHandler，讓每個請求送出前先緩衝 body，方便之後輸出
+        HttpClient = fixture.Factory.CreateDefaultClient(new RequestCaptureHandler());
+
+        DatabaseManager = fixture.Databases[DatabaseNames.Products];
+        AuditDatabase = fixture.Databases[DatabaseNames.Audit];
+        Kafka = fixture.Kafka;
+
+        Logger = new XUnitLogger<IntegrationTestBase>(testOutputHelper);
+        FlurlClient = new FlurlClient(HttpClient);
+    }
+
+    /// <summary>
+    /// 依序把這次呼叫的「請求」、SUT 內部 ILogger 訊息、以及「回應」輸出到測試記錄。
+    /// </summary>
+    protected async Task LogResponseBodyAsync(HttpResponseMessage response)
+    {
+        LogRequestSection(response.RequestMessage);
+        LogSutLogSection();
+        await LogResponseSectionAsync(response);
+    }
+
+    private void LogRequestSection(HttpRequestMessage? request)
+    {
+        if (request is null) return;
+
+        request.Options.TryGetValue(RequestCaptureHandler.CapturedBodyKey, out var body);
+        Logger.LogInformation("{Divider}\n▶ HTTP Request: {Method} {Uri}", Divider, request.Method, request.RequestUri);
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            Logger.LogInformation("{Body}", FormatJsonBody(body));
+        }
+    }
+
+    private void LogSutLogSection()
+    {
+        var sutLogLines = Factory.OutputSink.DrainAll();
+        if (sutLogLines.Count == 0) return;
+
+        Logger.LogInformation("{Divider}\n■ SUT Logs:", Divider);
+        foreach (var sutLogLine in sutLogLines)
+        {
+            Logger.LogInformation("{SutLogLine}", sutLogLine);
+        }
+    }
+
+    private async Task LogResponseSectionAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Logger.LogInformation("{Divider}\n◀ HTTP Response: {StatusCode}\n{Body}",
+            Divider, (int)response.StatusCode, FormatJsonBody(body));
+    }
+
+    private static string FormatJsonBody(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return body;
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            return JsonSerializer.Serialize(document, IndentedJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return body;
+        }
+    }
+
+    public virtual Task InitializeAsync()
+    {
+        // 容器與資料表已於組合根 fixture 啟動時建立；每個測試開始前不需再初始化
+        return Task.CompletedTask;
+    }
+
+    public virtual async Task DisposeAsync()
+    {
+        await Fixture.ResetStateAsync();      // Respawner 清空各資料庫
+        FlurlClient.Dispose();
+        Factory.OutputSink.DrainAll();        // 清掉殘留 SUT log
+    }
+
+    // ── 時間控制（一）：DI 注入的 TimeProvider（例如 ProductService） ──
+    protected void ResetTime() => Factory.TimeProvider.SetUtcNow(new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero));
+    protected void AdvanceTime(TimeSpan timeSpan) => Factory.TimeProvider.Advance(timeSpan);
+    protected void SetTime(DateTimeOffset time) => Factory.TimeProvider.SetUtcNow(time);
+
+    // ── 時間控制（二）：TimeProviderAccessor（AsyncLocal，例如 TimeController） ──
+    // 前提：IntegrationTestFixture 已設 Factory.Server.PreserveExecutionContext = true。
+    private static readonly TimeZoneInfo TaipeiZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei");
+
+    /// <summary>
+    /// 在測試方法內用 using 呼叫：把「台灣本地牆上時間 localWallClock」灌進 TimeProviderAccessor，
+    /// 離開 scope 自動還原。SetUtcNow 不能往回設且預設起始 2000-01-01，故用建構子設初始時間。
+    /// </summary>
+    protected IDisposable UseLocalTime(DateTime localWallClock)
+    {
+        var utc = TimeZoneInfo.ConvertTimeToUtc(
+            DateTime.SpecifyKind(localWallClock, DateTimeKind.Unspecified), TaipeiZone);
+
+        var fake = new FakeTimeProvider(new DateTimeOffset(utc, TimeSpan.Zero));
+        fake.SetLocalTimeZone(TaipeiZone);
+        return TimeProviderAccessor.CreateTestScope(fake);
+    }
+}
+```
+
+### 12-5. `Infrastructure/DatabaseNames.cs`
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 資料庫名稱常數。同一名稱同時是：registry 索引鍵、TestData/Sql/{Schema,Seed}/{Name} 目錄名、
+/// 以及 SUT 連線字串名（ConnectionStrings:{Name}）。以常數避免打錯字。
+/// </summary>
+public static class DatabaseNames
+{
+    public const string Products = "Products";
+    public const string Audit = "Audit";
+    public static readonly string[] All = [Products, Audit];
+}
+```
+
+### 12-6. `Infrastructure/DatabaseManager.cs`
+
+```csharp
+using Dapper;
+using Microsoft.Data.SqlClient;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 資料庫管理工具（fixture）：自建並持有一台 SQL Server container，以 DatabaseName 識別。
+/// 啟動時依目錄慣例執行 TestData/Sql/Schema/{Name} 與 Seed/{Name} 下的 sql，並建立 Respawner。
+/// </summary>
+public class DatabaseManager : IAsyncLifetime
+{
+    private readonly MsSqlContainer _sqlServerContainer;
+    private readonly string _databaseName;
+    private Respawner? _respawner;
+
+    public DatabaseManager(string databaseName)
+    {
+        _databaseName = databaseName;
+        _sqlServerContainer = new MsSqlBuilder()
+                             .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+                             .WithPassword("Your_strong_Password123")
+                             .WithCleanUp(true)
+                             .Build();
+    }
+
+    public string ConnectionString => _sqlServerContainer.GetConnectionString();
+
+    public async Task InitializeAsync()
+    {
+        await _sqlServerContainer.StartAsync();
+
+        await ExecuteScriptsFromDirectoryAsync(Path.Combine("TestData", "Sql", "Schema", _databaseName));
+        await ExecuteScriptsFromDirectoryAsync(Path.Combine("TestData", "Sql", "Seed", _databaseName));
+
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions { DbAdapter = DbAdapter.SqlServer });
+    }
+
+    public async Task DisposeAsync() => await _sqlServerContainer.DisposeAsync();
+
+    /// <summary>執行指定目錄下所有 .sql（依檔名排序）；目錄不存在則略過。</summary>
+    public async Task ExecuteScriptsFromDirectoryAsync(string relativeDirectory)
+    {
+        var directory = Path.Combine(AppContext.BaseDirectory, relativeDirectory);
+        if (!Directory.Exists(directory)) return;
+
+        foreach (var scriptFile in Directory.GetFiles(directory, "*.sql").OrderBy(path => path))
+        {
+            var script = await File.ReadAllTextAsync(scriptFile);
+            await using var connection = new SqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            await using var command = new SqlCommand(script, connection);
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+
+    public async Task CleanDatabaseAsync()
+    {
+        if (_respawner == null)
+            throw new InvalidOperationException("Respawner 尚未初始化，請先呼叫 InitializeAsync");
+
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        await _respawner.ResetAsync(connection);
+    }
+
+    public async Task<int> ExecuteAsync(string sql, object? parameters = null)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        return await connection.ExecuteAsync(sql, parameters);
+    }
+
+    public async Task<T> QuerySingleAsync<T>(string sql, object? parameters = null)
+    {
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        return await connection.QuerySingleAsync<T>(sql, parameters);
+    }
+}
+```
+
+### 12-7. `Infrastructure/DatabaseManagerRegistry.cs`
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 管理多台資料庫（多個 DatabaseManager）的登錄器，以資料庫名稱索引，統一 Init/Reset/Dispose。
+/// </summary>
+public sealed class DatabaseManagerRegistry
+{
+    private readonly IReadOnlyDictionary<string, DatabaseManager> _managers;
+
+    public DatabaseManagerRegistry(params string[] databaseNames)
+    {
+        _managers = databaseNames.ToDictionary(name => name, name => new DatabaseManager(name));
+    }
+
+    public DatabaseManager this[string databaseName] => _managers[databaseName];
+    public IReadOnlyDictionary<string, DatabaseManager> Managers => _managers;
+
+    public Task InitializeAllAsync() => Task.WhenAll(_managers.Values.Select(m => m.InitializeAsync()));
+    public Task ResetAllAsync() => Task.WhenAll(_managers.Values.Select(m => m.CleanDatabaseAsync()));
+
+    public async Task DisposeAllAsync()
+    {
+        foreach (var manager in _managers.Values)
+        {
+            await manager.DisposeAsync();
+        }
+    }
+}
+```
+
+### 12-8. `Infrastructure/RedisFixture.cs`
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>Redis fixture：自建並持有一個 Redis container，對外提供連線字串。</summary>
+public class RedisFixture : IAsyncLifetime
+{
+    private readonly RedisContainer _redisContainer;
+
+    public RedisFixture()
+    {
+        _redisContainer = new RedisBuilder().WithImage("redis:7-alpine").WithCleanUp(true).Build();
+    }
+
+    public string ConnectionString => _redisContainer.GetConnectionString();
+    public async Task InitializeAsync() => await _redisContainer.StartAsync();
+    public async Task DisposeAsync() => await _redisContainer.DisposeAsync();
+}
+```
+
+### 12-9. `Infrastructure/KafkaFixture.cs`
+
+```csharp
+using Confluent.Kafka;
+using Confluent.Kafka.Admin;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// Kafka fixture：自建並持有一個 Kafka container，提供 bootstrap servers、topic 建立與 consumer 消費驗證。
+/// 目前 SUT 尚未接 Kafka；先備好基礎設施，待 SUT 發布訊息時測試即可用 ConsumeSingleAsync 驗證。
+/// </summary>
+public class KafkaFixture : IAsyncLifetime
+{
+    private readonly KafkaContainer _kafkaContainer;
+
+    public KafkaFixture()
+    {
+        _kafkaContainer = new KafkaBuilder().WithImage("confluentinc/cp-kafka:7.5.3").WithCleanUp(true).Build();
+    }
+
+    public string BootstrapServers => _kafkaContainer.GetBootstrapAddress();
+    public async Task InitializeAsync() => await _kafkaContainer.StartAsync();
+    public async Task DisposeAsync() => await _kafkaContainer.DisposeAsync();
+
+    public async Task EnsureTopicsAsync(params string[] topics)
+    {
+        using var adminClient = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = BootstrapServers }).Build();
+        try
+        {
+            await adminClient.CreateTopicsAsync(topics.Select(topic => new TopicSpecification
+            {
+                Name = topic, NumPartitions = 1, ReplicationFactor = 1
+            }));
+        }
+        catch (CreateTopicsException ex) when (ex.Results.All(r => r.Error.Code == ErrorCode.TopicAlreadyExists))
+        {
+        }
+    }
+
+    public async Task<ConsumeResult<Ignore, string>?> ConsumeSingleAsync(
+        string topic, TimeSpan timeout, string? groupId = null, CancellationToken cancellationToken = default)
+    {
+        using var consumer = new ConsumerBuilder<Ignore, string>(new ConsumerConfig
+        {
+            BootstrapServers = BootstrapServers,
+            GroupId = groupId ?? $"integration-test-{Guid.NewGuid():N}",
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+            EnableAutoCommit = false
+        }).Build();
+
+        consumer.Subscribe(topic);
+
+        var deadline = DateTimeOffset.UtcNow.Add(timeout);
+        while (DateTimeOffset.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+        {
+            var result = consumer.Consume(TimeSpan.FromSeconds(1));
+            if (result is not null) return result;
+            await Task.Delay(100, cancellationToken);
+        }
+        return null;
+    }
+}
+```
+
+### 12-10. Log / request 轉發：4 個小類別
+
+`Infrastructure/RequestCaptureHandler.cs`
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 用戶端 DelegatingHandler：在請求送出「之前」把 request body 緩衝成字串存進 Options，
+/// 讓測試拿到回應後能從 response.RequestMessage 取回請求內容（送出後 request.Content 會被 dispose）。
+/// </summary>
+public sealed class RequestCaptureHandler : DelegatingHandler
+{
+    public static readonly HttpRequestOptionsKey<string?> CapturedBodyKey = new("CapturedRequestBody");
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        string? body = null;
+        if (request.Content != null)
+        {
+            await request.Content.LoadIntoBufferAsync();
+            body = await request.Content.ReadAsStringAsync(cancellationToken);
+        }
+
+        request.Options.Set(CapturedBodyKey, body);
+        return await base.SendAsync(request, cancellationToken);
+    }
+}
+```
+
+`Infrastructure/TestOutputSink.cs`
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// 收集被測 WebApi 內部（TestServer 處理請求期間）透過 ILogger 產生的訊息。
+/// TestServer 執行環境不延續呼叫端測試方法的 AsyncLocal，故改用集中佇列暫存，
+/// 由測試在每次 Act 後主動取出。因整合測試在同一 Collection 內循序執行，取出當下佇列即這次呼叫的紀錄。
+/// </summary>
+public sealed class TestOutputSink
+{
+    private readonly ConcurrentQueue<string> _entries = new();
+
+    public void Enqueue(string message) => _entries.Enqueue(message);
+
+    public IReadOnlyList<string> DrainAll()
+    {
+        var result = new List<string>();
+        while (_entries.TryDequeue(out var message))
+        {
+            result.Add(message);
+        }
+        return result;
+    }
+}
+```
+
+`Infrastructure/XUnitLogger.cs`
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Xunit.Abstractions;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>將 ILogger 輸出導向 xUnit 的 ITestOutputHelper。</summary>
+public sealed class XUnitLogger<T> : ILogger<T>
+{
+    private readonly ITestOutputHelper _output;
+
+    public XUnitLogger(ITestOutputHelper output) => _output = output;
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+    public bool IsEnabled(LogLevel logLevel) => true;
+
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+        Func<TState, Exception?, string> formatter)
+    {
+        _output.WriteLine(formatter(state, exception));
+        if (exception != null)
+        {
+            _output.WriteLine(exception.ToString());
+        }
+    }
+}
+```
+
+`Infrastructure/TestOutputSerilogSink.cs`
+
+```csharp
+using System.Globalization;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Parsing;
+
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>
+/// Serilog sink：把 SUT 內部（Controller/Service/Middleware）的 log event 格式化後送進 TestOutputSink 累積。
+/// 自行走訪 message template 的 token（JSON 字串屬性會換行縮排美化），避免 RenderMessage 加引號轉義。
+/// </summary>
+public sealed class TestOutputSerilogSink : ILogEventSink
+{
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    private readonly TestOutputSink _sink;
+
+    public TestOutputSerilogSink(TestOutputSink sink) => _sink = sink;
+
+    public void Emit(LogEvent logEvent)
+    {
+        var source = logEvent.Properties.TryGetValue("SourceContext", out var context)
+            ? context.ToString().Trim('"')
+            : string.Empty;
+
+        var line = $"[SUT] [{logEvent.Level}] [{source}] {RenderMessage(logEvent)}";
+        if (logEvent.Exception is not null)
+        {
+            line += $"\n{logEvent.Exception}";
+        }
+
+        _sink.Enqueue(line);
+    }
+
+    private static string RenderMessage(LogEvent logEvent)
+    {
+        var builder = new StringBuilder();
+        foreach (var token in logEvent.MessageTemplate.Tokens)
+        {
+            switch (token)
+            {
+                case TextToken text:
+                    builder.Append(text.Text);
+                    break;
+                case PropertyToken property:
+                    AppendProperty(builder, logEvent, property);
+                    break;
+            }
+        }
+        return builder.ToString();
+    }
+
+    private static void AppendProperty(StringBuilder builder, LogEvent logEvent, PropertyToken property)
+    {
+        if (!logEvent.Properties.TryGetValue(property.PropertyName, out var value))
+        {
+            builder.Append(property.ToString());
+            return;
+        }
+
+        if (value is ScalarValue { Value: string raw })
+        {
+            if (TryFormatJson(raw, out var formatted))
+            {
+                builder.Append('\n').Append(formatted);
+            }
+            else
+            {
+                builder.Append(raw);
+            }
+            return;
+        }
+
+        using var writer = new StringWriter();
+        value.Render(writer, property.Format, CultureInfo.InvariantCulture);
+        builder.Append(writer.ToString());
+    }
+
+    private static bool TryFormatJson(string raw, out string formatted)
+    {
+        formatted = raw;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+
+        var trimmed = raw.TrimStart();
+        if (trimmed.Length == 0 || (trimmed[0] != '{' && trimmed[0] != '[')) return false;
+
+        try
+        {
+            using var document = JsonDocument.Parse(raw);
+            formatted = JsonSerializer.Serialize(document, IndentedJsonOptions);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+}
+```
+
+### 12-11. 時間控制相關（SUT 端 + 示範測試）
+
+`src/Day23.Domain/Utilities/TimeProviderAccessor.cs`（AsyncLocal 版）
+
+```csharp
+namespace Day23.Domain.Utilities;
+
+/// <summary>
+/// 提供 TimeProvider 的存取器（AsyncLocal 版）。
+/// SUT 透過 TimeProviderAccessor.Now / UtcNow 取時間；測試用 SetTimeProvider / CreateTestScope 模擬。
+/// </summary>
+public static class TimeProviderAccessor
+{
+    private static readonly AsyncLocal<TimeProvider?> CurrentLocal = new();
+
+    public static TimeProvider Current => CurrentLocal.Value ?? TimeProvider.System;
+    public static DateTimeOffset Now => Current.GetLocalNow();
+    public static DateTime Today => Current.GetLocalNow().Date;
+    public static DateTimeOffset UtcNow => Current.GetUtcNow();
+
+    public static void SetTimeProvider(TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        CurrentLocal.Value = timeProvider;
+    }
+
+    public static void ResetToSystem() => CurrentLocal.Value = null;
+
+    public static IDisposable CreateTestScope(TimeProvider timeProvider) => new TestTimeScope(timeProvider);
+
+    private sealed class TestTimeScope : IDisposable
+    {
+        private readonly TimeProvider? _original;
+        public TestTimeScope(TimeProvider timeProvider)
+        {
+            _original = CurrentLocal.Value;
+            SetTimeProvider(timeProvider);
+        }
+        public void Dispose() => CurrentLocal.Value = _original;
+    }
+}
+```
+
+`src/Day23.WebApi/Controllers/TimeController.cs`（示範端點）
+
+```csharp
+using Day23.Domain.Utilities;
+
+namespace Day23.WebApi.Controllers;
+
+/// <summary>時間端點：回傳 SUT 透過 TimeProviderAccessor 取得的當下時間，用來驗證整合測試能否控制時間。</summary>
+[ApiController]
+[Route("time")]
+public class TimeController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult Get()
+    {
+        return this.Ok(new
+        {
+            now = TimeProviderAccessor.Now.DateTime,
+            utcNow = TimeProviderAccessor.UtcNow
+        });
+    }
+}
+```
+
+`Controllers/TimeControlTests.cs`（示範測試，實測通過）
+
+```csharp
+using Day23.Integration.Tests.Infrastructure;
+using Xunit.Abstractions;
+
+namespace Day23.Integration.Tests.Controllers;
+
+/// <summary>
+/// 在真正的整合測試結構（共用 factory + IntegrationTestBase）下，驗證能否控制 SUT 的時間。
+/// 前提：IntegrationTestFixture 已設 Factory.Server.PreserveExecutionContext = true。
+/// </summary>
+public class TimeControlTests : IntegrationTestBase
+{
+    private sealed record TimeResponse(DateTime Now, DateTimeOffset UtcNow);
+
+    public TimeControlTests(IntegrationTestFixture fixture, ITestOutputHelper testOutputHelper)
+        : base(fixture, testOutputHelper)
+    {
+    }
+
+    [Fact]
+    public async Task 設定本地時間後_time端點應回傳該時間()
+    {
+        using var _ = UseLocalTime(new DateTime(2030, 6, 15, 9, 0, 0));   // Act 之前
+
+        var response = await HttpClient.GetAsync("/time");
+        await LogResponseBodyAsync(response);
+
+        response.Should().Be200Ok();
+        var result = await response.Content.ReadFromJsonAsync<TimeResponse>();
+
+        result!.Now.Should().Be(new DateTime(2030, 6, 15, 9, 0, 0));
+        result.UtcNow.Should().Be(new DateTimeOffset(2030, 6, 15, 1, 0, 0, TimeSpan.Zero));
+    }
+}
+```
+
+### 12-12. `Infrastructure/TestHelpers.cs`（領域 seeding）
+
+```csharp
+namespace Day23.Integration.Tests.Infrastructure;
+
+/// <summary>測試輔助工具（領域 seeding 透過 DatabaseManager.ExecuteAsync）。</summary>
+public static class TestHelpers
+{
+    public static ProductCreateRequest CreateProductRequest(string name = "測試產品", decimal price = 100.00m)
+        => new() { Name = name, Price = price };
+
+    public static ProductUpdateRequest CreateProductUpdateRequest(string name = "更新產品", decimal price = 200.00m)
+        => new() { Name = name, Price = price };
+
+    /// <summary>批量種子產品資料（主資料庫）。</summary>
+    public static async Task SeedProductsAsync(DatabaseManager dbManager, int count)
+    {
+        var tasks = new List<Task>();
+        for (var i = 1; i <= count; i++)
+        {
+            tasks.Add(SeedSpecificProductAsync(dbManager, $"產品 {i:D2}", i * 10.0m));
+        }
+        await Task.WhenAll(tasks);
+    }
+
+    /// <summary>種子特定產品資料（主資料庫）。</summary>
+    public static async Task<Guid> SeedSpecificProductAsync(DatabaseManager dbManager, string name, decimal price)
+    {
+        var productId = Guid.NewGuid();
+        var sql = @"INSERT INTO products (id, name, price, created_at, updated_at)
+                    VALUES (@Id, @Name, @Price, @CreatedAt, @UpdatedAt)";
+        await dbManager.ExecuteAsync(sql, new
+        {
+            Id = productId, Name = name, Price = price,
+            CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+        });
+        return productId;
+    }
+}
+```
+
+### 12-13. `GlobalUsings.cs`（測試專案）
+
+```csharp
+global using System;
+global using System.Net.Http.Json;
+global using System.Text.Json;
+global using System.Threading.Tasks;
+global using Xunit;
+global using AwesomeAssertions;
+global using AwesomeAssertions.Web;
+global using Day23.WebApi;
+global using Day23.Application.Dtos;
+global using Day23.Domain;
+global using Flurl.Http;
+global using Microsoft.AspNetCore.Hosting;
+global using Microsoft.AspNetCore.Mvc.Testing;
+global using Microsoft.Extensions.DependencyInjection;
+global using Respawn;
+global using Testcontainers.Kafka;
+global using Testcontainers.MsSql;
+global using Testcontainers.Redis;
+```
+
+### 12-14. 測試專案套件（`Day23.Integration.Tests.csproj` 相關部分）
+
+```xml
+<ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.5.3"/>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2"/>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.1.0"/>
+    <PackageReference Include="Respawn" Version="7.0.0"/>
+    <PackageReference Include="Testcontainers" Version="4.9.0"/>
+    <PackageReference Include="Testcontainers.Kafka" Version="4.9.0"/>
+    <PackageReference Include="Testcontainers.MsSql" Version="4.9.0"/>
+    <PackageReference Include="Testcontainers.Redis" Version="4.9.0"/>
+    <!-- 其餘：xunit、Microsoft.AspNetCore.Mvc.Testing、Flurl.Http、AwesomeAssertions 等 -->
+</ItemGroup>
+
+<ItemGroup>
+    <!-- 測試資料 SQL（依 DatabaseName 分目錄）：萬用字元納入並保留目錄結構 -->
+    <Content Include="TestData\**\*.sql">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+</ItemGroup>
+```
+
+### 12-15. 測試資料目錄與 SQL（T-SQL）
+
+```text
+TestData/Sql/Schema/Products/CreateProductsTable.sql
+TestData/Sql/Schema/Audit/CreateAuditLogsTable.sql
+TestData/Sql/Seed/                 （目前留空；靜態種子放 Seed/{DatabaseName}/*.sql）
+```
+
+```sql
+-- TestData/Sql/Schema/Products/CreateProductsTable.sql
+IF OBJECT_ID(N'products', N'U') IS NULL
+BEGIN
+    CREATE TABLE products
+    (
+        id         UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_products PRIMARY KEY DEFAULT NEWID(),
+        name       NVARCHAR(200)    NOT NULL,
+        price      DECIMAL(10, 2)   NOT NULL,
+        created_at DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+        updated_at DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET()
+    );
+END;
+```
+
+---
+
 ## 附錄：一眼看懂的關係圖
 
 ```text
@@ -538,4 +1462,4 @@ flowchart TD
     Base -->|HttpClient / UseLocalTime| SUT
 ```
 
-> 完整可編譯程式碼：[multi-database-sqlserver-integration-test.md](multi-database-sqlserver-integration-test.md)
+> 本篇為自足文件，完整程式碼見上方第 12 節。
