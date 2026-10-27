@@ -30,6 +30,10 @@
 
 啟動新的命令程序，在啟動 Node **以前**設定該程序專用 TEMP／TMP／TMPDIR；公司 Windows 使用已指定 D 槽 temp 根目錄下的新子目錄。以同一 Node 確認 `os.tmpdir()` 與該目錄相符；CGR 繼承 Node 的環境，不能只設定 CGR 而讓 Node 探測仍落在 C 槽。檢查或子程序失敗就停止，不改父程序、User／Machine 環境。OS、客戶端自身日誌不在此應用暫存路徑保證內。
 
+先把本次唯一 run tag 綁定為具體的 `$RunTag`，再用已確認暫存根目錄與該 tag 組成 `$RunTemp`。`$RunTemp` 的最後一層必須等於本次 `$RunTag`，不能使用共用的 `tmp` 根目錄、其他 run 的目錄或字面值 `${st.tag}`／`${runTag}`／`$(...)`。檢查的是**變數求值後的資料值**，不是整段 PowerShell 文字；合法的 `${probeCode}:` 或會展開的 `${RunTag}` 語法仍可使用。
+
+在建立目錄、修改子程序環境或啟動 Node 前，先檢查 run tag 與本次產生的暫存／輸出／報告路徑沒有未展開模板，並確認 temp 最後一層與本次 tag 相符；之後再檢查 Node 的 `os.tmpdir()`。不能只因 Node 與預期字串同樣都是 `${st.tag}` 就判定隔離通過。執行紀錄保存本次 tag、預期 temp、實際 TEMP／TMP／TMPDIR 與 Node 觀察值；不能事後改寫舊紀錄來冒充原本符合要求。
+
 保留既有 CLI 的版本、binary SHA-256、原生 CGR、path／source guards 與 schema 檢查；不新增每個 repo 專屬的 runner、watchdog 或程序管理器。不要以每個 repo 的整套測試代替工具維護。
 
 ## 命令準備：固定讀法及同一份文字
@@ -73,11 +77,20 @@ if (@($parseErrors).Count -ne 0) {
 <node> <toolRoot>/bin/kw.mjs verify-graphs --artifact <newGraphDir> --manifest-sha256 <buildManifestSha256> --expect-project <projectId> --project <project.json> --local <local.json> --report <verifyReport.json>
 ```
 
-以下 PowerShell 原生呼叫範本在**新的執行程序**中使用；資料變數必須先以具體值綁定，不讓 Agent 每個 repo 重寫這段邏輯。`$NodeExe` 是核准 Node 完整路徑，`$CliEntry` 是所選工具的 `bin/kw.mjs`。`$ProjectId`、`$FixedCommit` 必須來自已核對設定；其他變數為本次實際絕對路徑。設定與命令準備不使用這段程序的 `exit`。
+以下 PowerShell 原生呼叫範本在**新的執行程序**中使用；資料變數必須先以具體值綁定，不讓 Agent 每個 repo 重寫這段邏輯。`$NodeExe` 是核准 Node 完整路徑，`$CliEntry` 是所選工具的 `bin/kw.mjs`。`$ProjectId`、`$FixedCommit` 必須來自已核對設定；`$RunTag` 是本次唯一且已求值的單層目錄名稱，`$RunTemp` 是以它命名的本次專用暫存路徑；其他變數為本次實際絕對路徑。設定與命令準備不使用這段程序的 `exit`。
 
 <!-- codebase-build-verify: validated executable example -->
 ```powershell
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($RunTag) -or $RunTag -in @('.', '..') -or $RunTag -match '[\\/]') { throw 'Run tag must be a concrete single directory name' }
+$resolvedPaths = @{ RunTag = [string]$RunTag; RunTemp = [string]$RunTemp; GraphDir = [string]$GraphDir; ReportRoot = [string]$ReportRoot; BuildReport = [string]$BuildReport; VerifyReport = [string]$VerifyReport }
+foreach ($pathName in $resolvedPaths.Keys) {
+    $pathValue = $resolvedPaths[$pathName]
+    if ([string]::IsNullOrWhiteSpace($pathValue)) { throw ('Missing resolved path value: {0}' -f $pathName) }
+    if ($pathValue.Contains('${') -or $pathValue.Contains('$(')) { throw ('Unexpanded template in resolved path value: {0}' -f $pathName) }
+}
+$tempLeaf = [System.IO.Path]::GetFileName([System.IO.Path]::GetFullPath($RunTemp).TrimEnd([char[]]@('\', '/')))
+if ($tempLeaf -cne $RunTag) { throw 'Run temp directory must use the current run tag as its final component' }
 $env:TEMP = $RunTemp
 $env:TMP = $RunTemp
 $env:TMPDIR = $RunTemp
@@ -140,6 +153,7 @@ exit 0
 | --- | --- |
 | 命令準備／參數／路徑錯誤，CLI 未啟動 | 在已授權範圍修正讀回、實際檔名或同一份文字的檢查，重新靜態檢查後繼續；不標成已重試建圖。parser 無法開檔不等於建圖語法錯誤。 |
 | `output_exists` | 最終 `--out` 已存在，空目錄也會被拒；保留該目錄與失敗報告，不刪除／清空／覆寫後自動重試。使用者明確授權再執行時，沿用本次已確認的 repo／固定 commit 與工具，改用新 run tag、新報告及不存在的輸出路徑，只建父目錄；一次建圖成功後再驗證。 |
+| 已完成圖譜，但 temp 使用字面模板／非本次 run 目錄 | 將圖譜通過與環境偏差分開記錄。已有 build／verify 通過且沒有其他產物異常證據時，不單因這項偏差要求重建；保留 artifact、報告與原 temp，不回填虛假的合規紀錄。修正未來執行前的求值／tag／temp 檢查；未知歸屬或占用狀態的 temp 不自動刪除。 |
 | 核准被拒、`spawn EPERM` | 依真實工具呼叫與原始錯誤確認執行邊界，不認定是 CGR 或磁碟不足。不能用換殼／wrapper 繞過被拒操作；停止受阻動作。 |
 | CLI／CGR probe timeout | 保存已知 executable、argv、timeout、起訖與原始 details；缺資訊如實寫未知。不自動延長 timeout、不重試、不把獨立診斷加到每個 repo 的例行流程。 |
 | 工具／schema／lock／release 不符 | 停止，保留目前有效工具與圖譜。工具升級與 schema 修改另行授權，不用重寫 manifest 掩蓋差異。 |
