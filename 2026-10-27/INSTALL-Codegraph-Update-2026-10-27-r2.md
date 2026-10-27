@@ -1,10 +1,12 @@
 # 公司建圖流程完整更新包：安裝方式
 
-日期：2026-10-27。這一包包含先前尚未傳到公司的 Skill，以及從 ClosingRate 完成畫面之後整理的共用文件。只需使用本包，不必先安裝前一份 ZIP。
+日期：2026-10-27。這是 r2 修正版：修正單獨呼叫 Skill 時自行選取舊 FXRate CBank、讀取歷史結果就結案的行為。它是完整包，只需使用本包，不必先安裝任何前版 ZIP。
 
 ## 安裝
 
-1. 人工把 `Company-Codegraph-Update-2026-10-27.zip` 複製到公司，先解壓到一個新的暫存資料夾，保留隱藏的 `.agents` 目錄。尚未複製或安裝前，不算公司已更新。
+已安裝前版時，同樣先備份再替換本版。完成後開全新的 session，不 resume 剛才自行選到舊案的對話。
+
+1. 人工把 `Company-Codegraph-Update-2026-10-27-r2.zip` 複製到公司，先解壓到一個新的暫存資料夾，保留隱藏的 `.agents` 目錄。尚未複製或安裝前，不算公司已更新。
 2. 在公司先將以下三個既有項目備份到 `D:\Projects\FX\_kw\work\backups` 下新的獨立備份資料夾；不存在的項目跳過。Skill 備份放在 `.agents\skills` 以外，避免讀到兩個同名入口：
    - `D:\Projects\FX\.agents\skills\kw-build-graphs` 整個資料夾。
    - `D:\Projects\FX\_kw\work\code-graph-common-procedure.md`。
@@ -26,6 +28,14 @@ D:\Projects\FX\_kw\work\codegraph-update-20261027\CHANGES.md
 ```text
 $kw-build-graphs
 ```
+
+## r2 的第一個回覆
+
+未提供本次 repo，單獨輸入 `$kw-build-graphs` 後，應先詢問：
+
+> 這次要建立圖譜的 repo 完整本機路徑是什麼？
+
+等待回答前，不可先列出 `_kw/work/repos`、讀取任何專案報告或執行 Git。讀取 Skill 與共用規則仍可進行。舊 pass 報告不代表本次已完成；已提供本次路徑後不重問。
 
 ## 保留範圍
 
