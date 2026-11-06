@@ -27,6 +27,13 @@ Windows 11
             └─ Kafka
 ```
 
+## D 槽安裝要求（2026-11-06 修訂）
+
+- Ubuntu 24.04 WSL2 指定安裝於 `D:\docker\wsl\ubuntu-24.04`，優先使用新版 WSL `wsl --install --location`；不支援時採用 `wsl --import`。
+- **Ubuntu 與 Rancher Desktop 的 WSL 發行版是不同的**。Ubuntu 安裝於 D 槽不代表 Docker Images、Volumes 也已移至 D 槽。
+- Rancher Desktop 自有資料磁碟是否能遷移至 D 槽，須依安裝版本確認官方支援方式，並實際驗收磁碟路徑；不得直接手動搬動其 VHDX。
+- 詳細命令、驗證方式及既有 Ubuntu 遷移警告請見文件 01 第 3 節。
+
 ## 核心原則
 
 - Rancher Desktop 使用 **moby (dockerd)**，不要選 containerd。
