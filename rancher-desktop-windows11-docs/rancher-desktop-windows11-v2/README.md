@@ -10,6 +10,23 @@
 2. [02-Testcontainers整合測試驗收手冊.md](02-Testcontainers整合測試驗收手冊.md)：xUnit、Docker API、Redis、SQL Server、Ryuk、IDE 驗收。
 3. [03-團隊部署標準與故障排除.md](03-團隊部署標準與故障排除.md)：標準化、環境檢查、資源、升級、排錯。
 
+## Rancher Desktop 1.25.0 安裝檔
+
+- [下載 Windows MSI 壓縮檔（約 673.3 MiB）](https://github.com/kevintsengtw/something/releases/download/rancher-desktop-1.25.0/Rancher.Desktop.Setup.1.25.0.msi.zip)
+- [Release 說明與檔案資訊](https://github.com/kevintsengtw/something/releases/tag/rancher-desktop-1.25.0)
+
+下載後解壓縮，依文件 01 第 4 節執行 MSI 安裝與設定。可先用 PowerShell 核對 ZIP 的 SHA-256：
+
+```powershell
+Get-FileHash .\Rancher.Desktop.Setup.1.25.0.msi.zip -Algorithm SHA256
+```
+
+預期值：
+
+```text
+a6c789eace85933528f98233c0a1ddf0d68c4c78fc29a246666af1efe0390aff
+```
+
 ## 已確定架構
 
 ```text
