@@ -1,12 +1,14 @@
 # Windows 11：Docker Desktop 移除與 Rancher Desktop 遷移前檢查手冊
 
-> 文件版本：1.0｜適用：Windows 11、WSL2、Windows 原生 Visual Studio / Rider、Testcontainers for .NET｜目的：移除舊 Docker Desktop，避免與 Rancher Desktop + Moby 混用。
+> 文件版本：1.1｜適用：Windows 11、WSL2、Windows 原生 Visual Studio / Rider、Testcontainers for .NET｜目的：移除舊 Docker Desktop，避免與 Rancher Desktop + Moby 混用。
 
 ## 1. 目的與適用範圍
 
 本文件是**獨立的遷移前置手冊**，不取代 Rancher Desktop 安裝手冊。適用於已安裝 Docker Desktop、準備改用 Rancher Desktop + Moby（dockerd）的 Windows 11 開發電腦。僅使用 Linux Containers；不需安裝 Ubuntu，也不應移除 Windows WSL2 平台。
 
-**建議流程：** 確認目前 Runtime → 清點與備份資料 → 退出 Docker Desktop → 正式解除安裝 → 檢查 WSL、CLI、Context、環境變數與殘留 → 重新開機 → 安裝 Rancher Desktop → 驗證 Testcontainers。
+**建議流程：** 確認目前 Runtime → 清點與備份資料 → 退出 Docker Desktop → **以系統管理員 PowerShell 執行官方解除安裝程式** → 檢查 WSL、CLI、Context、環境變數與殘留 → 重新開機 → 安裝 Rancher Desktop → 驗證 Testcontainers。
+
+**公司環境限制：** 一般使用者無法透過 Windows「已安裝的應用程式」解除安裝軟體，但可以開啟具有系統管理員權限的 PowerShell／Windows Terminal。因此本文件**不採用 GUI 解除安裝流程**。管理員權限不代表可以繞過公司端點管理、AppLocker、WDAC 或軟體部署政策；若官方卸載程式遭政策封鎖，應交由 IT 管理員處理。
 
 ## 2. 架構與資料隔離
 
@@ -53,14 +55,82 @@ Docker 官方明確警告：解除安裝 Docker Desktop 會刪除其本機 conta
 
 如需完整保留舊環境，請在執行解除安裝前停止遷移並確認備份策略。備份檔應放在不會隨 Docker Desktop 解除安裝而被清除的位置。
 
-## 5. 正式解除安裝 Docker Desktop
+## 5. 使用系統管理員 PowerShell 正式解除安裝 Docker Desktop
 
-1. 停止正在使用的容器與測試作業，確認資料已備份。
-2. 從系統匣選擇 **Quit Docker Desktop**。
-3. 開啟 **Windows 設定 → 應用程式 → 已安裝的應用程式 → Docker Desktop → 解除安裝**。
-4. 依解除安裝程式指示完成，不要在卸載尚未完成時手動刪除 WSL 發行版或 Docker 資料夾。
+### 5.1 前置條件
 
-官方文件：https://docs.docker.com/desktop/uninstall/
+1. 先完成第 3、4 章的資料清點及備份，停止 Visual Studio／Rider 的整合測試。
+2. 在 Docker Desktop 系統匣選單執行 **Quit Docker Desktop**。此動作只是停止應用程式，**不是解除安裝**。
+3. 開啟 **Windows Terminal／PowerShell（以系統管理員身分執行）**；不要在一般權限的終端機直接執行卸載。
+4. 確認目前終端機具有提升的管理員權限：
+
+```powershell
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = [Security.Principal.WindowsPrincipal]::new($identity)
+$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+```
+
+預期輸出為 `True`。若為 `False`，請重新開啟提升權限的終端機。
+
+### 5.2 確認官方卸載程式位置
+
+Docker Desktop Windows 預設安裝路徑通常包含官方安裝／卸載程式：
+
+```powershell
+$installer = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop Installer.exe'
+Test-Path -LiteralPath $installer
+```
+
+若為 `False`，先查詢可能的安裝位置，不要自行假設安裝路徑：
+
+```powershell
+Get-ChildItem 'C:\Program Files\Docker' -Filter 'Docker Desktop Installer.exe' -Recurse -ErrorAction SilentlyContinue |
+    Select-Object FullName
+```
+
+如果公司採用自訂安裝路徑，請改用實際路徑。若找不到官方卸載程式，**不要直接刪除 `C:\Program Files\Docker`**，請由 IT 透過原本的軟體部署工具修復或解除安裝。
+
+### 5.3 執行官方命令列解除安裝
+
+確認路徑後，在**提升權限**的 PowerShell 執行：
+
+```powershell
+$installer = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop Installer.exe'
+if (-not (Test-Path -LiteralPath $installer)) {
+    throw "找不到 Docker Desktop 官方卸載程式：$installer"
+}
+
+$process = Start-Process -FilePath $installer `
+    -ArgumentList 'uninstall' `
+    -Wait -PassThru
+
+"Docker Desktop uninstaller exit code: $($process.ExitCode)"
+```
+
+此方式呼叫 Docker Desktop 官方安裝程式的 `uninstall` 動作，**不依賴 Windows 設定中的解除安裝按鈕**。卸載程式可能仍會顯示視窗或要求互動；不要將此命令視為保證完全靜默的企業部署指令。
+
+若退出碼非 `0`，或卸載視窗回報失敗，**先停止後續清理**，記錄錯誤並交由 IT 查明；不要以刪除服務、WSL 發行版或安裝目錄代替正式解除安裝。
+
+### 5.4 驗證解除安裝結果
+
+```powershell
+Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue
+Get-Service -Name 'com.docker.service' -ErrorAction SilentlyContinue
+Test-Path -LiteralPath (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe')
+wsl --list --verbose
+```
+
+以上是**輔助檢查**，不能只靠單一項目判定卸載成功。服務、檔案或 WSL 發行版可能有殘留；若存在，依第 6～8 章確認是否可安全清理。完成正式解除安裝與必要檢查後，再重新啟動 Windows。
+
+### 5.5 公司環境常見阻礙
+
+- **無法執行卸載程式／遭組織原則封鎖：** 即使 PowerShell 已提升權限，仍可能受 AppLocker、WDAC、EDR 或集中軟體管理政策限制；請交由 IT 處理，不要嘗試繞過。
+- **找不到 `Docker Desktop Installer.exe`：** 不要使用 `Remove-Item` 強行刪除程式資料夾；應由 IT 查詢原安裝來源與可用的卸載方式。
+- **卸載程式顯示正在使用：** 先停止測試與 Docker Desktop，必要時由 IT 確認相關背景程序。
+- **卸載後 Docker CLI 仍可執行：** 可能是另一份 CLI、PATH 或 Context 殘留，不代表 Docker Desktop 仍安裝。
+
+官方依據：Docker Desktop Windows 解除安裝文件：
+https://docs.docker.com/desktop/uninstall/
 
 ## 6. 檢查 WSL2 發行版（不可誤刪）
 
